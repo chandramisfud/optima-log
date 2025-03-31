@@ -32,9 +32,12 @@ const UILogTab: React.FC<UILogTabProps> = ({ server, env }) => {
                 params: { date, server, env },
                 headers: { Authorization: `Bearer ${token}` },
             });
-            setLogs(response.data.logs);
+            // Ensure logs is always an array, even if the response is invalid
+            const fetchedLogs = Array.isArray(response.data.logs) ? response.data.logs : [];
+            setLogs(fetchedLogs);
         } catch (err: any) {
             setError(err.response?.data?.error || 'Failed to fetch logs');
+            setLogs([]); // Reset logs to an empty array on error
         } finally {
             setLoading(false);
         }
@@ -54,7 +57,7 @@ const UILogTab: React.FC<UILogTabProps> = ({ server, env }) => {
                             headers: { Authorization: `Bearer ${token}` },
                         }
                     );
-                    setLogContent(response.data);
+                    setLogContent(response.data || '');
                 } catch (err: any) {
                     setError(err.response?.data?.error || 'Failed to fetch log content');
                 } finally {
