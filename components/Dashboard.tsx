@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import DatabaseBackupsTab from '../components/DatabaseBackupsTab';
-import MandrillActivityTab from '../components/MandrillActivityTab';
-import UILogTab from '../components/UILogTab';
-import APILogTab from '../components/APILogTab';
+import Sidebar from './Sidebar';
+import DatabaseBackupsTab from './DatabaseBackupsTab';
+import MandrillActivityTab from './MandrillActivityTab';
+import UILogTab from './UILogTab';
+import APILogTab from './APILogTab';
 
 const Dashboard: React.FC = () => {
     const [activeMenu, setActiveMenu] = useState('XVA_DATABASE_BACKUP_DEVELOPMENT');
@@ -28,61 +28,61 @@ const Dashboard: React.FC = () => {
                 <Routes>
                     {/* Database Backup Routes */}
                     <Route
-                        path="/database-backup/development"
+                        path="database-backup/development"
                         element={<DatabaseBackupsTab env="dev" />}
                     />
                     <Route
-                        path="/database-backup/production"
+                        path="database-backup/production"
                         element={<DatabaseBackupsTab env="prod" />}
                     />
                     <Route
-                        path="/database-backup/staging"
+                        path="database-backup/staging"
                         element={<DatabaseBackupsTab env="staging" />}
                     />
                     <Route
-                        path="/database-backup/production-danone"
+                        path="database-backup/production-danone"
                         element={<DatabaseBackupsTab env="prod-danone" />}
                     />
 
                     {/* UI Log Routes */}
                     <Route
-                        path="/ui-log/development"
+                        path="ui-log/development"
                         element={<UILogTab server="ui" env="dev" />}
                     />
                     <Route
-                        path="/ui-log/production"
+                        path="ui-log/production"
                         element={<UILogTab server="ui" env="prod" />}
                     />
                     <Route
-                        path="/ui-log/staging"
+                        path="ui-log/staging"
                         element={<UILogTab server="ui" env="staging" />}
                     />
                     <Route
-                        path="/ui-log/production-danone"
+                        path="ui-log/production-danone"
                         element={<UILogTab server="ui" env="prod-danone" />}
                     />
 
                     {/* API Log Routes */}
                     <Route
-                        path="/api-log/development"
+                        path="api-log/development"
                         element={<APILogTab server="api" env="dev" />}
                     />
                     <Route
-                        path="/api-log/production"
+                        path="api-log/production"
                         element={<APILogTab server="api" env="prod" />}
                     />
                     <Route
-                        path="/api-log/staging"
+                        path="api-log/staging"
                         element={<APILogTab server="api" env="staging" />}
                     />
                     <Route
-                        path="/api-log/production-danone"
+                        path="api-log/production-danone"
                         element={<APILogTab server="api" env="prod-danone" />}
                     />
 
                     {/* Mandrill Activity Route */}
                     <Route
-                        path="/mandrill-activity"
+                        path="mandrill-activity"
                         element={<MandrillActivityTab />}
                     />
 
