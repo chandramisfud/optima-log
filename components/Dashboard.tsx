@@ -1,38 +1,100 @@
-// components/Dashboard.tsx
-
-import React from "react";
-import { useAuth } from "@/components/AuthContext";
-import { useRouter } from "next/router";
-import { User } from "@/types/api";
+import React, { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Sidebar from '../components/Sidebar';
+import DatabaseBackupsTab from '../components/DatabaseBackupsTab';
+import MandrillActivityTab from '../components/MandrillActivityTab';
+import UILogTab from '../components/UILogTab';
+import APILogTab from '../components/APILogTab';
 
 const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
-  const router = useRouter();
+    const [activeMenu, setActiveMenu] = useState('XVA_DATABASE_BACKUP_DEVELOPMENT');
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
-  };
+    return (
+        <div className="flex">
+            {/* Sidebar */}
+            <Sidebar activeMenu={activeMenu} setActiveMenu={setActiveMenu} />
 
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+            {/* Main Content */}
+            <div className="flex-1 p-4">
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-3xl font-bold">Dashboard</h1>
+                    <div className="flex items-center">
+                        <span className="mr-2">HI ‘CHANDRA’ YOU ARE GREAT !!</span>
+                        <span className="bg-blue-500 text-white px-2 py-1 rounded">ADMIN</span>
+                        <span className="ml-2">⚙️</span>
+                    </div>
+                </div>
 
-  return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">
-        HALO {user.username.toUpperCase()}, YOU ARE GREAT !!
-      </h1>
-      <p className="mb-4">Role: {user.role}</p>
-      <button
-        onClick={handleLogout}
-        className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-      >
-        Logout
-      </button>
-      {/* Add log-related components here (LogFilter, LogList, etc.) */}
-    </div>
-  );
+                <Routes>
+                    {/* Database Backup Routes */}
+                    <Route
+                        path="/database-backup/development"
+                        element={<DatabaseBackupsTab env="dev" />}
+                    />
+                    <Route
+                        path="/database-backup/production"
+                        element={<DatabaseBackupsTab env="prod" />}
+                    />
+                    <Route
+                        path="/database-backup/staging"
+                        element={<DatabaseBackupsTab env="staging" />}
+                    />
+                    <Route
+                        path="/database-backup/production-danone"
+                        element={<DatabaseBackupsTab env="prod-danone" />}
+                    />
+
+                    {/* UI Log Routes */}
+                    <Route
+                        path="/ui-log/development"
+                        element={<UILogTab server="ui" env="dev" />}
+                    />
+                    <Route
+                        path="/ui-log/production"
+                        element={<UILogTab server="ui" env="prod" />}
+                    />
+                    <Route
+                        path="/ui-log/staging"
+                        element={<UILogTab server="ui" env="staging" />}
+                    />
+                    <Route
+                        path="/ui-log/production-danone"
+                        element={<UILogTab server="ui" env="prod-danone" />}
+                    />
+
+                    {/* API Log Routes */}
+                    <Route
+                        path="/api-log/development"
+                        element={<APILogTab server="api" env="dev" />}
+                    />
+                    <Route
+                        path="/api-log/production"
+                        element={<APILogTab server="api" env="prod" />}
+                    />
+                    <Route
+                        path="/api-log/staging"
+                        element={<APILogTab server="api" env="staging" />}
+                    />
+                    <Route
+                        path="/api-log/production-danone"
+                        element={<APILogTab server="api" env="prod-danone" />}
+                    />
+
+                    {/* Mandrill Activity Route */}
+                    <Route
+                        path="/mandrill-activity"
+                        element={<MandrillActivityTab />}
+                    />
+
+                    {/* Default Route */}
+                    <Route
+                        path="/"
+                        element={<div className="text-gray-500">Select a menu item to view content.</div>}
+                    />
+                </Routes>
+            </div>
+        </div>
+    );
 };
 
 export default Dashboard;

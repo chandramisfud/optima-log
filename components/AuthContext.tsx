@@ -45,7 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (credentials: LoginRequest) => {
     logger.debug("Attempting login with credentials", credentials);
     try {
-      const response = await axios.post<LoginResponse>("http://localhost:8080/api/users/login", credentials);
+      const response = await axios.post<LoginResponse>("https://apioptima-log.xva-rnd.com/api/users/login", credentials);
       const { user, token } = response.data;
       logger.info("Login successful", { user, token });
       setUser(user);
