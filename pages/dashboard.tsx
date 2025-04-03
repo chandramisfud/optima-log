@@ -1,15 +1,23 @@
-import React from 'react';
-import Dashboard from '../components/Dashboard';
+// pages/dashboard.tsx
+import { useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Layout from '../components/Layout';
+import { withAuth } from '../lib/auth';
 
-const DashboardPage: React.FC = () => {
-    return <Dashboard />;
+const Dashboard: React.FC = () => {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/online-users');
+  }, [router]);
+
+  return (
+    <Layout>
+      <div className="text-center text-gray-800">
+        <h1 className="text-2xl font-bold">Redirecting to Online Users...</h1>
+      </div>
+    </Layout>
+  );
 };
 
-// Disable SSR for this page since it uses client-side routing
-export const getServerSideProps = () => {
-    return {
-        props: {},
-    };
-};
-
-export default DashboardPage;
+export default withAuth(Dashboard);
