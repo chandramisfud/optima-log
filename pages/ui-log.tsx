@@ -1,4 +1,4 @@
-// pages/ui-log.tsx
+// pages/ui-log.tsx (updated)
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
@@ -6,6 +6,7 @@ import { withAuth } from '../lib/auth';
 import { NextPage } from 'next';
 import { getLogFiles, getLogContent, searchLogs, downloadLogs } from '../lib/api';
 import { LogFile, LogSearchResult } from '../types/log';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 const UILog: NextPage = () => {
   const router = useRouter();
@@ -26,7 +27,7 @@ const UILog: NextPage = () => {
     setError(null);
     try {
       const response = await getLogFiles(date, 'ui', env as 'dev' | 'prod', platform as 'XVA' | 'DANONE');
-      setLogFiles(response.data.files);
+      setLogFiles(response.data.files || []);
       setSelectedFile(null);
       setLogContent('');
       setSearchResults([]);
@@ -43,7 +44,7 @@ const UILog: NextPage = () => {
     setError(null);
     try {
       const response = await getLogContent('ui', date, env as 'dev' | 'prod', file, platform as 'XVA' | 'DANONE');
-      setLogContent(response.data);
+      setLogContent(response.data || '');
       if (searchKeyword) {
         await searchInLogs();
       }
@@ -60,7 +61,7 @@ const UILog: NextPage = () => {
     setError(null);
     try {
       const response = await searchLogs(date, 'ui', env as 'dev' | 'prod', platform as 'XVA' | 'DANONE', searchKeyword);
-      setSearchResults(response.data);
+      setSearchResults(response.data || []);
     } catch (err) {
       setError('Failed to search logs');
     } finally {
@@ -110,106 +111,113 @@ const UILog: NextPage = () => {
     if (!searchKeyword || !searchResults.length) return text;
     let highlightedText = text;
     searchResults.forEach((result) => {
-      const regex = new RegExp(`(${searchKeyword})`, 'gi');
-      highlightedText = highlightedText.replace(regex, '<span class="bg-yellow-200">$1</span>');
+      try {
+        const regex = new RegExp(`(${searchKeyword})`, 'gi');
+        highlightedText = highlightedText.replace(regex, '<span class="bg-yellow-200">$1</span>');
+      } catch (err) {
+        console.error('Error in highlightSearchResults:', err);
+        return text; // Fallback to original text if regex fails
+      }
     });
     return highlightedText;
   };
 
   return (
-    <Layout>
-      <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4 text-gray-800">
-          UI Log ({env === 'dev' ? 'Development' : 'Production'} - {platform})
-        </h1>
-        <div className="mb-4">
-          <label className="block mb-2 text-gray-700">Choose Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="p-2 border rounded"
-          />
-        </div>
-        {loading && (
-          <div className="text-center">
-            <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
-            <p className="mt-2 text-gray-600">Loading...</p>
+    <ErrorBoundary>
+      <Layout>
+        <div className="p-6">
+          <h1 className="text-2xl font-bold mb-4 text-gray-800">
+            UI Log ({env === 'dev' ? 'Development' : 'Production'} - {platform})
+          </h1>
+          <div className="mb-4">
+            <label className="block mb-2 text-gray-700">Choose Date</label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="p-2 border rounded"
+            />
           </div>
-        )}
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        {!loading && !error && (
-          <>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold mb-2 text-gray-700">Log Files</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {logFiles.length === 0 ? (
-                  <p className="text-gray-500">No log files found for this date.</p>
-                ) : (
-                  logFiles.map((file) => (
-                    <div key={file.name} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="logFile"
-                        value={file.name}
-                        checked={selectedFile === file.name}
-                        onChange={() => setSelectedFile(file.name)}
-                        className="mr-2"
-                      />
-                      <label className="text-gray-700">{file.name}</label>
-                    </div>
-                  ))
-                )}
-              </div>
+          {loading && (
+            <div className="text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-500 border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+              <p className="mt-2 text-gray-600">Loading...</p>
             </div>
-            {selectedFile && (
-              <>
-                <div className="mb-4 flex items-center space-x-4">
-                  <div>
-                    <label className="block mb-2 text-gray-700">Search</label>
-                    <input
-                      type="text"
-                      value={searchKeyword}
-                      onChange={(e) => setSearchKeyword(e.target.value)}
-                      className="p-2 border rounded"
-                      placeholder="Enter keyword..."
+          )}
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          {!loading && !error && (
+            <>
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold mb-2 text-gray-700">Log Files</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {logFiles.length === 0 ? (
+                    <p className="text-gray-500">No log files found for this date.</p>
+                  ) : (
+                    logFiles.map((file) => (
+                      <div key={file.name} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="logFile"
+                          value={file.name}
+                          checked={selectedFile === file.name}
+                          onChange={() => setSelectedFile(file.name)}
+                          className="mr-2"
+                        />
+                        <label className="text-gray-700">{file.name}</label>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              {selectedFile && (
+                <>
+                  <div className="mb-4 flex items-center space-x-4">
+                    <div>
+                      <label className="block mb-2 text-gray-700">Search</label>
+                      <input
+                        type="text"
+                        value={searchKeyword}
+                        onChange={(e) => setSearchKeyword(e.target.value)}
+                        className="p-2 border rounded"
+                        placeholder="Enter keyword..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-2 text-gray-700">Font Size</label>
+                      <select
+                        value={fontSize}
+                        onChange={(e) => setFontSize(Number(e.target.value))}
+                        className="p-2 border rounded"
+                      >
+                        <option value={12}>12px</option>
+                        <option value={14}>14px</option>
+                        <option value={16}>16px</option>
+                        <option value={18}>18px</option>
+                        <option value={20}>20px</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={handleDownload}
+                      className="mt-6 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                      disabled={loading}
+                    >
+                      Download
+                    </button>
+                  </div>
+                  <div className="bg-gray-100 p-4 rounded">
+                    <pre
+                      className="whitespace-pre-wrap"
+                      style={{ fontSize: `${fontSize}px` }}
+                      dangerouslySetInnerHTML={{ __html: highlightSearchResults(logContent) }}
                     />
                   </div>
-                  <div>
-                    <label className="block mb-2 text-gray-700">Font Size</label>
-                    <select
-                      value={fontSize}
-                      onChange={(e) => setFontSize(Number(e.target.value))}
-                      className="p-2 border rounded"
-                    >
-                      <option value={12}>12px</option>
-                      <option value={14}>14px</option>
-                      <option value={16}>16px</option>
-                      <option value={18}>18px</option>
-                      <option value={20}>20px</option>
-                    </select>
-                  </div>
-                  <button
-                    onClick={handleDownload}
-                    className="mt-6 bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                    disabled={loading}
-                  >
-                    Download
-                  </button>
-                </div>
-                <div className="bg-gray-100 p-4 rounded">
-                  <pre
-                    className="whitespace-pre-wrap"
-                    style={{ fontSize: `${fontSize}px` }}
-                    dangerouslySetInnerHTML={{ __html: highlightSearchResults(logContent) }}
-                  />
-                </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </Layout>
+                </>
+              )}
+            </>
+          )}
+        </div>
+      </Layout>
+    </ErrorBoundary>
   );
 };
 
