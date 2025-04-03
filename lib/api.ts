@@ -1,5 +1,6 @@
 // lib/api.ts
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import { User } from '../types/user';
 import { LogListResponse, LogSearchResult } from '../types/log';
 import { BackupFile } from '../types/backup';
 import { MandrillActivity } from '../types/mandrill';
@@ -14,9 +15,11 @@ const api: AxiosInstance = axios.create({
 // Add a request interceptor to include the JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -28,13 +31,19 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/';
+      }
     }
     return Promise.reject(error);
   }
 );
+
+export const getUsers = (): Promise<AxiosResponse<User[]>> => {
+  return api.get('/api/users');
+};
 
 export const getLogFiles = (
   date: string,

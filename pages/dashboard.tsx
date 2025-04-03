@@ -3,8 +3,9 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import { withAuth } from '../lib/auth';
+import { NextPage } from 'next';
 
-const Dashboard: React.FC = () => {
+const Dashboard: NextPage = () => {
   const router = useRouter();
 
   useEffect(() => {
