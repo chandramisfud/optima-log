@@ -2,7 +2,7 @@
 "use client"
 
 import { Suspense } from "react";
-import { Sidebar } from "@/components/sidebar";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function SidebarWrapper() {
   return (

@@ -1,6 +1,6 @@
 // app/(authenticated)/layout.tsx
 import type React from "react";
-import { Header } from "@/components/header";
+import { Header } from "@/components/Header";
 import SidebarWrapper from "./SidebarWrapper";
 
 export default function AuthenticatedLayout({
