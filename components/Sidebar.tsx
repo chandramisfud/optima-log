@@ -1,111 +1,210 @@
-// components/Sidebar.tsx
-import { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/router';
+"use client"
 
-interface MenuSection {
-  name: string;
-  subItems: { name: string; link: string; active: boolean }[];
+import type React from "react"
+
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname, useSearchParams } from "next/navigation"
+
+type MenuItem = {
+  label: string
+  href?: string
+  icon?: React.ReactNode
+  children?: MenuItem[]
+  query?: Record<string, string>
 }
 
-const Sidebar: React.FC = () => {
-  const [xvaExpanded, setXvaExpanded] = useState<boolean>(true);
-  const [danoneExpanded, setDanoneExpanded] = useState<boolean>(true);
-  const router = useRouter();
+export function Sidebar() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  const menuSections: MenuSection[] = [
+  const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
+    XVA: true,
+    DANONE: false,
+  })
+
+  const menuItems: MenuItem[] = [
     {
-      name: 'XVA',
-      subItems: [
-        { name: 'DEVELOPMENT', link: '', active: false },
-        { name: 'UI LOG', link: '/ui-log?env=dev&platform=XVA', active: true },
-        { name: 'API LOG', link: '/api-log?env=dev&platform=XVA', active: true },
-        { name: 'DATABASE BACKUP', link: '/database-backup?env=dev&platform=XVA', active: true },
-        { name: 'PRODUCTION', link: '', active: false },
-        { name: 'UI LOG', link: '/ui-log?env=prod&platform=XVA', active: true },
-        { name: 'API LOG', link: '/api-log?env=prod&platform=XVA', active: true },
-        { name: 'DATABASE BACKUP', link: '/database-backup?env=prod&platform=XVA', active: true },
-        { name: 'GO DADDY EMAIL', link: '', active: false },
+      label: "DASHBOARD",
+      href: "/dashboard",
+    },
+    {
+      label: "XVA",
+      children: [
+        {
+          label: "DEVELOPMENT",
+          children: [
+            {
+              label: "UI LOG",
+              href: "/ui-log",
+              query: { env: "dev", platform: "XVA" },
+            },
+            {
+              label: "API LOG",
+              href: "/api-log",
+              query: { env: "dev", platform: "XVA" },
+            },
+            {
+              label: "DATABASE BACKUP",
+              href: "/database-backup",
+              query: { env: "dev", platform: "XVA" },
+            },
+          ],
+        },
+        {
+          label: "PRODUCTION",
+          children: [
+            {
+              label: "UI LOG",
+              href: "/ui-log",
+              query: { env: "prod", platform: "XVA" },
+            },
+            {
+              label: "API LOG",
+              href: "/api-log",
+              query: { env: "prod", platform: "XVA" },
+            },
+            {
+              label: "DATABASE BACKUP",
+              href: "/database-backup",
+              query: { env: "prod", platform: "XVA" },
+            },
+          ],
+        },
+        {
+          label: "GO DADDY EMAIL",
+          href: "/go-daddy-email",
+          query: { platform: "XVA" },
+        },
       ],
     },
     {
-      name: 'DANONE',
-      subItems: [
-        { name: 'STAGING', link: '', active: false },
-        { name: 'UI LOG', link: '', active: false },
-        { name: 'API LOG', link: '', active: false },
-        { name: 'DATABASE BACKUP', link: '', active: false },
-        { name: 'PRODUCTION', link: '', active: false },
-        { name: 'UI LOG', link: '', active: false },
-        { name: 'API LOG', link: '', active: false },
-        { name: 'DATABASE BACKUP', link: '', active: false },
+      label: "DANONE",
+      children: [
+        {
+          label: "STAGING",
+          children: [
+            {
+              label: "UI LOG",
+              href: "/ui-log",
+              query: { env: "staging", platform: "DANONE" },
+            },
+            {
+              label: "API LOG",
+              href: "/api-log",
+              query: { env: "staging", platform: "DANONE" },
+            },
+            {
+              label: "DATABASE BACKUP",
+              href: "/database-backup",
+              query: { env: "staging", platform: "DANONE" },
+            },
+          ],
+        },
+        {
+          label: "PRODUCTION",
+          children: [
+            {
+              label: "UI LOG",
+              href: "/ui-log",
+              query: { env: "prod", platform: "DANONE" },
+            },
+            {
+              label: "API LOG",
+              href: "/api-log",
+              query: { env: "prod", platform: "DANONE" },
+            },
+            {
+              label: "DATABASE BACKUP",
+              href: "/database-backup",
+              query: { env: "prod", platform: "DANONE" },
+            },
+          ],
+        },
+        {
+          label: "MANDRILL EMAIL",
+          href: "/mandrill-email",
+        }
       ],
     },
-    { name: 'MANDRILL EMAIL', subItems: [{ name: '', link: '/mandrill-email', active: true }] },
-  ];
+  ]
+
+  const toggleExpand = (label: string) => {
+    setExpandedItems((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }))
+  }
+
+  const isActive = (item: MenuItem) => {
+    if (!item.href) return false
+
+    if (item.query) {
+      const currentEnv = searchParams.get("env")
+      const currentPlatform = searchParams.get("platform")
+      return pathname === item.href && currentEnv === item.query.env && currentPlatform === item.query.platform
+    }
+
+    return pathname === item.href
+  }
+
+  const renderMenuItem = (item: MenuItem, level = 0, parentExpanded = true) => {
+    const hasChildren = item.children && item.children.length > 0
+    const isExpanded = expandedItems[item.label]
+    const active = isActive(item)
+
+    const buildQueryString = (query?: Record<string, string>) => {
+      if (!query) return ""
+      return (
+        "?" +
+        Object.entries(query)
+          .map(([key, value]) => `${key}=${value}`)
+          .join("&")
+      )
+    }
+
+    return (
+      <div key={item.label} style={{ display: parentExpanded ? "block" : "none" }}>
+        {item.href ? (
+          <Link
+            href={`${item.href}${buildQueryString(item.query)}`}
+            className={`sidebar-item ${active ? "active" : ""}`}
+            style={{ paddingLeft: `${level * 20 + 16}px` }}
+          >
+            {item.icon && <span className="sidebar-icon">{item.icon}</span>}
+            <span className={active ? "font-bold" : ""}>{item.label}</span>
+          </Link>
+        ) : (
+          <div
+            className="sidebar-item"
+            style={{ paddingLeft: `${level * 20 + 16}px` }}
+            onClick={() => toggleExpand(item.label)}
+          >
+            <div className="flex items-center">
+              {item.icon && <span className="sidebar-icon">{item.icon}</span>}
+              <span>{item.label}</span>
+            </div>
+            {hasChildren && <span className={`sidebar-chevron ${isExpanded ? "expanded" : ""}`}>▶</span>}
+          </div>
+        )}
+
+        {hasChildren && (
+          <div className="sidebar-children">
+            {item.children?.map((child) => renderMenuItem(child, level + 1, isExpanded))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
-    <div className="w-64 h-screen bg-gray-200 p-4">
-      <div className="text-center mb-6">
-        <h1 className="text-xl font-bold text-gray-800">XVA LOGO</h1>
+    <div className="sidebar">
+      <div className="sidebar-header">
+        <div className="sidebar-logo">XVA LOGO</div>
+        <div className="sidebar-menu">MENU</div>
       </div>
-      <nav>
-        <ul>
-          {menuSections.map((section, index) => (
-            <li key={index}>
-              <div
-                className={`flex items-center justify-between p-2 cursor-pointer hover:bg-gray-300 ${
-                  section.subItems.some((subItem) => subItem.link === router.asPath)
-                    ? 'bg-gray-300 font-bold'
-                    : ''
-                }`}
-                onClick={() =>
-                  section.name === 'XVA'
-                    ? setXvaExpanded(!xvaExpanded)
-                    : section.name === 'DANONE'
-                    ? setDanoneExpanded(!danoneExpanded)
-                    : null
-                }
-              >
-                <span className="flex items-center">
-                  {section.name === 'XVA' && <span className="mr-2">🏠</span>}
-                  {section.name === 'DANONE' && <span className="mr-2">🏭</span>}
-                  {section.name}
-                </span>
-                {section.subItems.length > 1 && (
-                  <span>
-                    {section.name === 'XVA' ? (xvaExpanded ? '▼' : '▶') : (danoneExpanded ? '▼' : '▶')}
-                  </span>
-                )}
-              </div>
-              {(section.name === 'XVA' ? xvaExpanded : section.name === 'DANONE' ? danoneExpanded : true) && (
-                <ul className="ml-4">
-                  {section.subItems.map((subItem, subIndex) => (
-                    <li key={subIndex} className="p-2">
-                      {subItem.active ? (
-                        <Link href={subItem.link}>
-                          <a
-                            className={`flex items-center hover:bg-gray-300 ${
-                              router.asPath === subItem.link ? 'bg-gray-300 font-bold' : ''
-                            }`}
-                          >
-                            <span className="mr-2">{router.asPath === subItem.link ? '●' : '○'}</span>
-                            {subItem.name}
-                          </a>
-                        </Link>
-                      ) : (
-                        <span className="text-gray-500">{subItem.name}</span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
+      <nav className="sidebar-nav">{menuItems.map((item) => renderMenuItem(item))}</nav>
     </div>
-  );
-};
+  )
+}
 
-export default Sidebar;

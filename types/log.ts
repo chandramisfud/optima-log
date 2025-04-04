@@ -1,6 +1,7 @@
 // types/log.ts
 export interface LogFile {
     name: string;
+    path: string; // We'll use name as the path for simplicity
     date: string;
     server: string;
     env: string;

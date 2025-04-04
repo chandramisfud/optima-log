@@ -1,9 +1,14 @@
-// context/AuthContext.tsx
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types/user';
+// context/auth-context.tsx
+"use client"
 
-// Function to check if we're in a browser environment
-const isBrowser = typeof window !== 'undefined';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}
 
 interface AuthContextType {
   user: User | null;
@@ -15,12 +20,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    setIsClient(true);
     // On page load, check if there's a user in localStorage
-    if (isBrowser) {
+    if (typeof window !== 'undefined') {
       const storedUser = localStorage.getItem('user');
       const token = localStorage.getItem('token');
       if (storedUser && token) {
@@ -31,7 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const handleSetUser = (newUser: User | null) => {
     setUser(newUser);
-    if (isBrowser) {
+    if (typeof window !== 'undefined') {
       if (newUser) {
         localStorage.setItem('user', JSON.stringify(newUser));
       } else {
@@ -41,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    if (isBrowser) {
+    if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
     }
