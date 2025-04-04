@@ -1,15 +1,16 @@
 // tailwind.config.ts
-import type { Config } from "tailwindcss" with { "resolution-mode": "import" };
-const config = {
-  darkMode: "class",
+// tailwind.config.ts
+import type { Config } from "tailwindcss" with { "resolution-mode": "import" }
+
+const config: Config = {
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}",
-    "./app/**/*.{ts,tsx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/**/*.{ts,tsx}",
     "*.{js,ts,jsx,tsx,mdx}",
   ],
-  prefix: "",
+  darkMode: "class",
   theme: {
     container: {
       center: true,
@@ -20,31 +21,6 @@ const config = {
     },
     extend: {
       colors: {
-        mint: {
-          100: "hsl(var(--mint-100))",
-        },
-        lime: {
-          100: "hsl(var(--lime-100))",
-          300: "hsl(var(--lime-300))",
-          400: "hsl(var(--lime-400))",
-        },
-        teal: {
-          300: "hsl(var(--teal-300))",
-        },
-        navy: {
-          900: "hsl(var(--navy-900))",
-        },
-        blue: {
-          100: "hsl(var(--blue-100))",
-          200: "hsl(var(--blue-200))",
-          400: "hsl(var(--blue-400))",
-          600: "hsl(var(--blue-600))",
-        },
-        green: {
-          50: "hsl(var(--green-50))",
-          100: "hsl(var(--green-100))",
-          600: "hsl(var(--green-600))",
-        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -78,11 +54,36 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-      },
-      borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        mint: {
+          100: "hsl(150, 50%, 90%)",
+        },
+        lime: {
+          100: "hsl(80, 60%, 90%)",
+          300: "hsl(80, 60%, 75%)",
+          400: "hsl(80, 60%, 65%)",
+        },
+        teal: {
+          300: "hsl(180, 50%, 60%)",
+        },
+        navy: {
+          900: "hsl(240, 50%, 20%)",
+        },
+        blue: {
+          100: "hsl(210, 50%, 90%)",
+          200: "hsl(210, 50%, 80%)",
+          400: "hsl(210, 50%, 60%)",
+          600: "hsl(210, 50%, 40%)",
+        },
+        green: {
+          50: "hsl(120, 50%, 95%)",
+          100: "hsl(120, 50%, 90%)",
+          600: "hsl(120, 50%, 40%)",
+        },
+        borderRadius: {
+          lg: "var(--radius)",
+          md: "calc(var(--radius) - 2px)",
+          sm: "calc(var(--radius) - 4px)",
+        },
       },
       keyframes: {
         "accordion-down": {
@@ -100,9 +101,7 @@ const config = {
       },
     },
   },
-  plugins: [
-    // require("tailwindcss-animate") // Commented out due to potential incompatibility with Tailwind CSS 4.x
-  ],
-} satisfies Config;
+  plugins: [require("tailwindcss-animate")],
+}
 
-export default config;
+export default config
