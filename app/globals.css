@@ -4,7 +4,8 @@
 @tailwind utilities;
 
 /* Base styles */
-body {
+html, body {
+  height: 100%;
   margin: 0;
   padding: 0;
   font-family: "Inter", sans-serif;
@@ -216,6 +217,8 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Ensure main-content can shrink if needed */
+  background-color: lightblue; /* Debug: Light blue background */
 }
 
 .header {
@@ -293,6 +296,9 @@ body {
   flex: 1;
   overflow: auto;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Ensure main-area can shrink if needed */
 }
 
 /* Dashboard content styles */
@@ -344,6 +350,10 @@ body {
 /* Log Viewer styles */
 .log-viewer {
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .log-header {
@@ -362,6 +372,11 @@ body {
   background-color: hsl(150, 50%, 90%); /* mint-100 */
   border-radius: 1.5rem;
   padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
 }
 
 .log-controls {
@@ -408,6 +423,9 @@ body {
   border-radius: 0.375rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .loading-message,
@@ -490,7 +508,7 @@ body {
   font-family: monospace;
   white-space: pre-wrap;
   overflow: auto;
-  flex: 1; /* Changed from height: 500px to flex: 1 to expand to fill the available space */
+  flex: 1;
   min-height: 0;
 }
 
