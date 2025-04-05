@@ -9,11 +9,11 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen">
+    <div className="dashboard-container">
       <SidebarWrapper />
-      <div className="flex-1 flex flex-col">
+      <div className="main-content">
         <Header />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="main-area">{children}</main>
       </div>
     </div>
   );
