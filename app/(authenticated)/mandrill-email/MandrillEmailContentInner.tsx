@@ -16,12 +16,13 @@ export default function MandrillEmailContentInner() {
   const today = new Date().toISOString().split('T')[0]; // "2025-04-07"
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>(today); // Default to today
-  const [dateTo, setDateTo] = useState<string>(today); // Default to today
-  const [status, setStatus] = useState<string>("sent"); // Default to "sent" to match API data
+  const [dateFrom, setDateFrom] = useState<string>(today);
+  const [dateTo, setDateTo] = useState<string>(today);
+  const [status, setStatus] = useState<string>(""); // Default to empty string to show all emails initially
   const [limit, setLimit] = useState<number>(500);
   const [offset, setOffset] = useState<number>(0);
-  const [activities, setActivities] = useState<MandrillActivity[]>([]);
+  const [allActivities, setAllActivities] = useState<MandrillActivity[]>([]); // Store all fetched activities
+  const [filteredActivities, setFilteredActivities] = useState<MandrillActivity[]>([]); // Store filtered activities
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +39,8 @@ export default function MandrillEmailContentInner() {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await getMandrillActivity(status, dateFrom, dateTo, limit, offset);
+      // Fetch all activities without filtering by status
+      const response = await getMandrillActivity("", dateFrom, dateTo, limit, offset);
       const data = response.data;
 
       // Check if the response has the expected structure
@@ -54,17 +56,7 @@ export default function MandrillEmailContentInner() {
           ts: msg.ts,
         }));
 
-        // Filter activities by search term if provided
-        const filteredActivities = searchTerm
-          ? mappedActivities.filter(
-              (activity) =>
-                activity.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                activity.status.toLowerCase().includes(searchTerm.toLowerCase())
-            )
-          : mappedActivities;
-
-        setActivities(filteredActivities);
+        setAllActivities(mappedActivities);
         setTotalCount(data.total_count);
 
         // Update stats using the metrics and quota from the response
@@ -79,7 +71,7 @@ export default function MandrillEmailContentInner() {
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
-        setActivities([]);
+        setAllActivities([]);
         setTotalCount(0);
         setStats({
           delivered: 0,
@@ -97,7 +89,7 @@ export default function MandrillEmailContentInner() {
       } else {
         setError("Failed to fetch email activity");
       }
-      setActivities([]);
+      setAllActivities([]);
       setTotalCount(0);
       setStats({
         delivered: 0,
@@ -111,6 +103,35 @@ export default function MandrillEmailContentInner() {
       setIsLoading(false);
     }
   };
+
+  // Filter activities based on status and search term
+  useEffect(() => {
+    let filtered = allActivities;
+
+    // Apply status filter
+    if (status) {
+      filtered = filtered.filter((activity) =>
+        activity.status.toLowerCase() === status.toLowerCase()
+      );
+    }
+
+    // Apply search term filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (activity) =>
+          activity.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          activity.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          activity.status.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredActivities(filtered);
+  }, [allActivities, status, searchTerm]);
+
+  // Fetch activities when date range, limit, or offset changes
+  useEffect(() => {
+    fetchActivities();
+  }, [dateFrom, dateTo, limit, offset]);
 
   const handleExport = async () => {
     setIsLoading(true);
@@ -131,10 +152,6 @@ export default function MandrillEmailContentInner() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchActivities();
-  }, [status, dateFrom, dateTo, limit, offset]);
 
   const handlePageChange = (newOffset: number) => {
     setOffset(newOffset);
@@ -169,7 +186,7 @@ export default function MandrillEmailContentInner() {
       );
     }
 
-    if (activities.length === 0) {
+    if (filteredActivities.length === 0) {
       return (
         <tr>
           <td colSpan={5} className="table-cell">
@@ -179,7 +196,7 @@ export default function MandrillEmailContentInner() {
       );
     }
 
-    return activities.map((activity, index) => (
+    return filteredActivities.map((activity, index) => (
       <tr key={index} className="table-row">
         <td className="table-cell">{escapeHtml(activity.status)}</td>
         <td className="table-cell">{escapeHtml(activity.date)}</td>
@@ -207,7 +224,7 @@ export default function MandrillEmailContentInner() {
             <input
               placeholder="Search activity"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} // Update search term
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
             />
           </div>
@@ -225,7 +242,6 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
@@ -244,9 +260,9 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("rejected")}
             >
               <span>Rejected</span>
-              <span className="badge">{activities.filter((a) => a.status.toLowerCase() === "rejected").length}</span>
+              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "rejected").length}</span>
             </div>
-            <button className="control-button" onClick={fetchActivities}>
+            <button className="control-button" onClick={() => setStatus("")}>
               OK
             </button>
           </div>
