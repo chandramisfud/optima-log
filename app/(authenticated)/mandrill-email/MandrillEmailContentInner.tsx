@@ -37,22 +37,48 @@ export default function MandrillEmailContentInner() {
     try {
       const response = await getMandrillActivity(status, dateFrom, dateTo, limit, offset);
       const fetchedActivities = response.data;
-      setActivities(fetchedActivities);
-      setTotalCount(fetchedActivities.length); // Adjust if API provides total count
+      // Ensure fetchedActivities is an array
+      if (Array.isArray(fetchedActivities)) {
+        setActivities(fetchedActivities);
+        setTotalCount(fetchedActivities.length); // Adjust if API provides total count
 
-      // Calculate stats
-      const delivered = fetchedActivities.filter((a: MandrillActivity) => a.status.toLowerCase() === "delivered").length;
-      const sent = fetchedActivities.length;
-      const deliverability = sent > 0 ? ((delivered / sent) * 100).toFixed(2) + "%" : "0%";
+        // Calculate stats
+        const delivered = fetchedActivities.filter((a: MandrillActivity) => a.status.toLowerCase() === "delivered").length;
+        const sent = fetchedActivities.length;
+        const deliverability = sent > 0 ? ((delivered / sent) * 100).toFixed(2) + "%" : "0%";
+        setStats((prevStats) => ({
+          ...prevStats,
+          delivered,
+          sent,
+          deliverability,
+        }));
+      } else {
+        console.error("Invalid Mandrill activity response:", fetchedActivities);
+        setError("Invalid response format from server");
+        setActivities([]);
+        setTotalCount(0);
+        setStats((prevStats) => ({
+          ...prevStats,
+          delivered: 0,
+          sent: 0,
+          deliverability: "0%",
+        }));
+      }
+    } catch (error: any) {
+      console.error("Error fetching email activity:", error);
+      if (error.response?.status === 403) {
+        setError("Unauthorized: Admin role required");
+      } else {
+        setError("Failed to fetch email activity");
+      }
+      setActivities([]);
+      setTotalCount(0);
       setStats((prevStats) => ({
         ...prevStats,
-        delivered,
-        sent,
-        deliverability,
+        delivered: 0,
+        sent: 0,
+        deliverability: "0%",
       }));
-    } catch (error) {
-      console.error("Error fetching email activity:", error);
-      setError("Failed to fetch email activity");
     } finally {
       setIsLoading(false);
     }
