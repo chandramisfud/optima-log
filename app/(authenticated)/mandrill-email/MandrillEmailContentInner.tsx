@@ -243,7 +243,6 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
