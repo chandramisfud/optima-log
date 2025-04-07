@@ -51,7 +51,7 @@ export default function MandrillEmailContentInner() {
           subject: msg.subject,
           status: msg.state,
           date: new Date(msg.ts * 1000).toISOString().split('T')[0],
-          clock: msg.clock, // Map the clock field from the API response
+          clock: msg.clock,
           content: msg.content,
           _id: msg._id,
           ts: msg.ts,
@@ -69,6 +69,9 @@ export default function MandrillEmailContentInner() {
           sends: data.quota.emails_sent,
           resetDate: data.quota.reset_date,
         });
+
+        // Log the statuses of the fetched activities for debugging
+        console.log("Fetched activities statuses:", mappedActivities.map((a) => a.status));
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -107,6 +110,7 @@ export default function MandrillEmailContentInner() {
 
   // Filter activities based on status and search term
   useEffect(() => {
+    console.log("Current status filter:", status); // Debug the status state
     let filtered = allActivities;
 
     // Apply status filter
@@ -126,6 +130,7 @@ export default function MandrillEmailContentInner() {
       );
     }
 
+    console.log("Filtered activities:", filtered); // Debug the filtered activities
     setFilteredActivities(filtered);
   }, [allActivities, status, searchTerm]);
 
@@ -200,7 +205,7 @@ export default function MandrillEmailContentInner() {
     return filteredActivities.map((activity, index) => (
       <tr key={index} className="table-row">
         <td className="table-cell">{escapeHtml(activity.status)}</td>
-        <td className="table-cell">{escapeHtml(activity.clock)}</td> {/* Use clock instead of date */}
+        <td className="table-cell">{escapeHtml(activity.clock)}</td>
         <td className="table-cell">{escapeHtml(activity.email)}</td>
         <td className="table-cell">{escapeHtml(activity.subject)}</td>
         <td className="table-cell">
@@ -243,6 +248,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
+            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
@@ -254,7 +260,7 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("delivered")}
             >
               <span>Delivered</span>
-              <span className="badge">{stats.delivered}</span>
+              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span>
             </div>
             <div
               className={`filter-badge ${status === "rejected" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"} cursor-pointer`}
