@@ -12,10 +12,13 @@ export default function MandrillEmailContentInner() {
   const env = searchParams.get("env") || "dev";
   const platform = searchParams.get("platform") || "XVA";
 
+  // Set default date to today (April 7, 2025)
+  const today = new Date().toISOString().split('T')[0]; // "2025-04-07"
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>("2025-03-01");
-  const [dateTo, setDateTo] = useState<string>("2025-03-31");
-  const [status, setStatus] = useState<string>("delivered");
+  const [dateFrom, setDateFrom] = useState<string>(today); // Default to today
+  const [dateTo, setDateTo] = useState<string>(today); // Default to today
+  const [status, setStatus] = useState<string>("sent"); // Default to "sent" to match API data
   const [limit, setLimit] = useState<number>(500);
   const [offset, setOffset] = useState<number>(0);
   const [activities, setActivities] = useState<MandrillActivity[]>([]);
@@ -51,7 +54,17 @@ export default function MandrillEmailContentInner() {
           ts: msg.ts,
         }));
 
-        setActivities(mappedActivities);
+        // Filter activities by search term if provided
+        const filteredActivities = searchTerm
+          ? mappedActivities.filter(
+              (activity) =>
+                activity.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                activity.status.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+          : mappedActivities;
+
+        setActivities(filteredActivities);
         setTotalCount(data.total_count);
 
         // Update stats using the metrics and quota from the response
@@ -192,11 +205,10 @@ export default function MandrillEmailContentInner() {
           <div className="search-container">
             <span className="search-icon">🔍</span>
             <input
-              placeholder="SEARCH ACTIVITY"
+              placeholder="Search activity"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)} // Update search term
               className="search-input"
-              disabled // Placeholder as per requirements
             />
           </div>
 
@@ -257,7 +269,7 @@ export default function MandrillEmailContentInner() {
             <h3 className="quota-title">MONTHLY QUOTA</h3>
             <div className="quota-row">
               <span>EMAIL QUOTA : {stats.quota}</span>
-              <span>{stats.quota && stats.sends ? ((stats.sends / stats.quota) * 100).toFixed(2) + "%" : "N/A"}</span>
+              <span>{stats.quota && stats.sends ? ((stats.sends / stats.quota) * 100).toFixed(3) + "%" : "N/A"}</span>
             </div>
             <div className="quota-row">EMAIL SENDS : {stats.sends}</div>
             <div className="quota-row">RESET ON {stats.resetDate}</div>
