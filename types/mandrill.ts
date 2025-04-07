@@ -4,9 +4,10 @@ export interface MandrillActivity {
     subject: string;
     status: string;
     date: string;
+    clock: string; // Add clock field for date and time
     content?: string;
-    _id?: string; // Optional, as per API response
-    ts?: number;  // Optional, as per API response
+    _id?: string;
+    ts?: number;
   }
   
   export interface MandrillQuota {

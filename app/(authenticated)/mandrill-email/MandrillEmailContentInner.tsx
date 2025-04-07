@@ -21,8 +21,8 @@ export default function MandrillEmailContentInner() {
   const [status, setStatus] = useState<string>(""); // Default to empty string to show all emails initially
   const [limit, setLimit] = useState<number>(500);
   const [offset, setOffset] = useState<number>(0);
-  const [allActivities, setAllActivities] = useState<MandrillActivity[]>([]); // Store all fetched activities
-  const [filteredActivities, setFilteredActivities] = useState<MandrillActivity[]>([]); // Store filtered activities
+  const [allActivities, setAllActivities] = useState<MandrillActivity[]>([]);
+  const [filteredActivities, setFilteredActivities] = useState<MandrillActivity[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +49,9 @@ export default function MandrillEmailContentInner() {
         const mappedActivities: MandrillActivity[] = data.messages.map((msg: any) => ({
           email: msg.email,
           subject: msg.subject,
-          status: msg.state, // API uses 'state' instead of 'status'
-          date: new Date(msg.ts * 1000).toISOString().split('T')[0], // Convert timestamp to date string
+          status: msg.state,
+          date: new Date(msg.ts * 1000).toISOString().split('T')[0],
+          clock: msg.clock, // Map the clock field from the API response
           content: msg.content,
           _id: msg._id,
           ts: msg.ts,
@@ -199,7 +200,7 @@ export default function MandrillEmailContentInner() {
     return filteredActivities.map((activity, index) => (
       <tr key={index} className="table-row">
         <td className="table-cell">{escapeHtml(activity.status)}</td>
-        <td className="table-cell">{escapeHtml(activity.date)}</td>
+        <td className="table-cell">{escapeHtml(activity.clock)}</td> {/* Use clock instead of date */}
         <td className="table-cell">{escapeHtml(activity.email)}</td>
         <td className="table-cell">{escapeHtml(activity.subject)}</td>
         <td className="table-cell">
@@ -242,6 +243,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
+            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
