@@ -26,9 +26,9 @@ export default function MandrillEmailContentInner() {
     delivered: 0,
     sent: 0,
     deliverability: "0%",
-    quota: 225000, // Hardcoded as per mock data
-    sends: 124778, // Hardcoded as per mock data
-    resetDate: "APRIL 7, 2025", // Hardcoded as per mock data
+    quota: 225000,
+    sends: 0,
+    resetDate: "APRIL 7, 2025",
   });
 
   const fetchActivities = async () => {
@@ -36,33 +36,46 @@ export default function MandrillEmailContentInner() {
     setError(null);
     try {
       const response = await getMandrillActivity(status, dateFrom, dateTo, limit, offset);
-      const fetchedActivities = response.data;
-      // Ensure fetchedActivities is an array
-      if (Array.isArray(fetchedActivities)) {
-        setActivities(fetchedActivities);
-        setTotalCount(fetchedActivities.length); // Adjust if API provides total count
+      const data = response.data;
 
-        // Calculate stats
-        const delivered = fetchedActivities.filter((a: MandrillActivity) => a.status.toLowerCase() === "delivered").length;
-        const sent = fetchedActivities.length;
-        const deliverability = sent > 0 ? ((delivered / sent) * 100).toFixed(2) + "%" : "0%";
-        setStats((prevStats) => ({
-          ...prevStats,
-          delivered,
-          sent,
-          deliverability,
+      // Check if the response has the expected structure
+      if (data && Array.isArray(data.messages)) {
+        // Map the messages to the MandrillActivity format
+        const mappedActivities: MandrillActivity[] = data.messages.map((msg: any) => ({
+          email: msg.email,
+          subject: msg.subject,
+          status: msg.state, // API uses 'state' instead of 'status'
+          date: new Date(msg.ts * 1000).toISOString().split('T')[0], // Convert timestamp to date string
+          content: msg.content,
+          _id: msg._id,
+          ts: msg.ts,
         }));
+
+        setActivities(mappedActivities);
+        setTotalCount(data.total_count);
+
+        // Update stats using the metrics and quota from the response
+        setStats({
+          delivered: data.metrics.delivered,
+          sent: data.metrics.sent,
+          deliverability: data.metrics.deliverability.toFixed(2) + "%",
+          quota: data.quota.monthly_limit,
+          sends: data.quota.emails_sent,
+          resetDate: data.quota.reset_date,
+        });
       } else {
-        console.error("Invalid Mandrill activity response:", fetchedActivities);
+        console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
         setActivities([]);
         setTotalCount(0);
-        setStats((prevStats) => ({
-          ...prevStats,
+        setStats({
           delivered: 0,
           sent: 0,
           deliverability: "0%",
-        }));
+          quota: 225000,
+          sends: 0,
+          resetDate: "APRIL 7, 2025",
+        });
       }
     } catch (error: any) {
       console.error("Error fetching email activity:", error);
@@ -73,12 +86,14 @@ export default function MandrillEmailContentInner() {
       }
       setActivities([]);
       setTotalCount(0);
-      setStats((prevStats) => ({
-        ...prevStats,
+      setStats({
         delivered: 0,
         sent: 0,
         deliverability: "0%",
-      }));
+        quota: 225000,
+        sends: 0,
+        resetDate: "APRIL 7, 2025",
+      });
     } finally {
       setIsLoading(false);
     }

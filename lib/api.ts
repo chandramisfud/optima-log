@@ -3,7 +3,7 @@ import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { User } from '../types/user';
 import { LogListResponse, LogSearchResult } from '../types/log';
 import { BackupFile } from '../types/backup';
-import { MandrillActivity } from '../types/mandrill';
+import { MandrillActivity, MandrillActivityResponse } from '../types/mandrill';
 
 const api: AxiosInstance = axios.create({
   baseURL: 'https://apioptima-log.xva-rnd.com',
@@ -43,6 +43,10 @@ api.interceptors.response.use(
 
 export const getUsers = (): Promise<AxiosResponse<User[]>> => {
   return api.get('/api/users');
+};
+
+export const login = (username: string, password: string): Promise<AxiosResponse<any>> => {
+  return api.post('/api/login', { username, password });
 };
 
 export const getLogFiles = (
@@ -111,7 +115,7 @@ export const getMandrillActivity = (
   date_to: string,
   limit: number,
   offset: number
-): Promise<AxiosResponse<MandrillActivity[]>> => {
+): Promise<AxiosResponse<MandrillActivityResponse>> => {
   return api.post('/api/mandrill/activity', { status, date_from, date_to, limit, offset });
 };
 
