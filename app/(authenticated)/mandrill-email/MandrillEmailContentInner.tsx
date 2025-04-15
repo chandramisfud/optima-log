@@ -3,21 +3,21 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { getMandrillActivity, exportMandrillActivity } from "@/lib/api";
+import { getMandrillActivity, exportMandrillActivity, getMandrillContent } from "@/lib/api";
 import { MandrillActivity, MandrillStats } from "@/types/mandrill";
 import { escapeHtml } from "@/lib/utils";
+import he from 'he'; // Import the he library to unescape HTML
 
 export default function MandrillEmailContentInner() {
   const searchParams = useSearchParams();
   const env = searchParams.get("env") || "dev";
   const platform = searchParams.get("platform") || "XVA";
 
-  // Set default date to today (April 7, 2025)
-  const today = new Date().toISOString().split('T')[0]; // "2025-04-07"
+  // Set default date range to a broader period to include more emails
+  const [dateFrom, setDateFrom] = useState<string>("2025-03-01");
+  const [dateTo, setDateTo] = useState<string>("2025-04-07");
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [dateFrom, setDateFrom] = useState<string>(today);
-  const [dateTo, setDateTo] = useState<string>(today);
   const [status, setStatus] = useState<string>(""); // Default to empty string to show all emails initially
   const [limit, setLimit] = useState<number>(500);
   const [offset, setOffset] = useState<number>(0);
@@ -35,12 +35,27 @@ export default function MandrillEmailContentInner() {
     resetDate: "APRIL 7, 2025",
   });
 
+  // State for email content modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<{
+    content: string;
+    subject: string;
+    from_email: string;
+    from_name: string;
+    to: { email: string; name: string; type: string }[];
+  } | null>(null);
+  const [contentLoading, setContentLoading] = useState(false);
+  const [contentError, setContentError] = useState<string | null>(null);
+
   const fetchActivities = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Fetch all activities without filtering by status
-      const response = await getMandrillActivity("", dateFrom, dateTo, limit, offset);
+      // Pass the status filter as an array to the API
+      const statusFilter = status ? [status] : [];
+      console.log("Fetching activities with status filter:", statusFilter);
+
+      const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset);
       const data = response.data;
 
       // Check if the response has the expected structure
@@ -70,8 +85,8 @@ export default function MandrillEmailContentInner() {
           resetDate: data.quota.reset_date,
         });
 
-        // Log the statuses of the fetched activities for debugging
-        console.log("Fetched activities statuses:", mappedActivities.map((a) => a.status));
+        // Log the fetched activities for debugging
+        console.log("Fetched activities:", mappedActivities);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -108,17 +123,9 @@ export default function MandrillEmailContentInner() {
     }
   };
 
-  // Filter activities based on status and search term
+  // Filter activities based on search term only (status filtering is handled by the API)
   useEffect(() => {
-    console.log("Current status filter:", status); // Debug the status state
     let filtered = allActivities;
-
-    // Apply status filter
-    if (status) {
-      filtered = filtered.filter((activity) =>
-        activity.status.toLowerCase() === status.toLowerCase()
-      );
-    }
 
     // Apply search term filter
     if (searchTerm) {
@@ -130,20 +137,21 @@ export default function MandrillEmailContentInner() {
       );
     }
 
-    console.log("Filtered activities:", filtered); // Debug the filtered activities
+    console.log("Filtered activities (after search):", filtered);
     setFilteredActivities(filtered);
-  }, [allActivities, status, searchTerm]);
+  }, [allActivities, searchTerm]);
 
-  // Fetch activities when date range, limit, or offset changes
+  // Fetch activities when status, date range, limit, or offset changes
   useEffect(() => {
     fetchActivities();
-  }, [dateFrom, dateTo, limit, offset]);
+  }, [status, dateFrom, dateTo, limit, offset]);
 
   const handleExport = async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await exportMandrillActivity(status, dateFrom, dateTo, limit, offset);
+      const statusFilter = status ? [status] : [];
+      const response = await exportMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -157,6 +165,40 @@ export default function MandrillEmailContentInner() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleViewContent = async (id: string) => {
+    setContentLoading(true);
+    setContentError(null);
+    try {
+      const response = await getMandrillContent(id);
+      const data = response.data;
+      setSelectedEmail({
+        content: he.decode(data.content), // Unescape the HTML content
+        subject: data.subject,
+        from_email: data.from_email,
+        from_name: data.from_name,
+        to: data.to,
+      });
+      setIsModalOpen(true);
+    } catch (error: any) {
+      console.error("Error fetching email content:", error);
+      if (error.response?.status === 404) {
+        setContentError("Message not found");
+      } else if (error.response?.status === 401) {
+        setContentError("Unauthorized");
+      } else {
+        setContentError("Failed to fetch email content");
+      }
+    } finally {
+      setContentLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEmail(null);
+    setContentError(null);
   };
 
   const handlePageChange = (newOffset: number) => {
@@ -209,8 +251,12 @@ export default function MandrillEmailContentInner() {
         <td className="table-cell">{escapeHtml(activity.email)}</td>
         <td className="table-cell">{escapeHtml(activity.subject)}</td>
         <td className="table-cell">
-          <button className="link-button" disabled>
-            View Content (Coming Soon)
+          <button
+            className="link-button"
+            onClick={() => handleViewContent(activity._id!)}
+            disabled={contentLoading}
+          >
+            {contentLoading ? "Loading..." : "View Content"}
           </button>
         </td>
       </tr>
@@ -248,8 +294,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-            <span className="calendar-icon">📅</span>
-          </div>
+\          </div>
         </div>
 
         <div className="filter-section">
@@ -260,7 +305,7 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("delivered")}
             >
               <span>Delivered</span>
-              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span>
+              <span className="badge">{stats.delivered}</span>
             </div>
             <div
               className={`filter-badge ${status === "rejected" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"} cursor-pointer`}
@@ -319,6 +364,31 @@ export default function MandrillEmailContentInner() {
             <tbody>{renderTableContent()}</tbody>
           </table>
         </div>
+
+        {isModalOpen && selectedEmail && (
+          <div className="modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="modal-content" style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '80%', maxHeight: '80%', overflowY: 'auto' }}>
+              <h3>Email Content</h3>
+              {contentError ? (
+                <p className="text-red-500">{contentError}</p>
+              ) : (
+                <>
+                  <p><strong>Subject:</strong> {selectedEmail.subject}</p>
+                  <p><strong>From:</strong> {selectedEmail.from_name ? `${selectedEmail.from_name} <${selectedEmail.from_email}>` : selectedEmail.from_email}</p>
+                  <p><strong>To:</strong> {selectedEmail.to.map(recipient => recipient.email).join(', ')}</p>
+                  <hr />
+                  <div
+                    dangerouslySetInnerHTML={{ __html: selectedEmail.content }}
+                    style={{ border: '1px solid #ddd', padding: '10px', borderRadius: '4px' }}
+                  />
+                </>
+              )}
+              <button onClick={closeModal} style={{ marginTop: '10px', padding: '5px 10px' }}>
+                Close
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="pagination-section">
           <div className="rows-selector">
