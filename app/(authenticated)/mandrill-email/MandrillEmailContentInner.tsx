@@ -98,7 +98,6 @@ export default function MandrillEmailContentInner() {
         }));
 
         setAllActivities(mappedActivities);
-        setFilteredActivities(mappedActivities); // No client-side filtering needed
         setTotalCount(data.total_count);
 
         // Update stats using the metrics and quota from the response
@@ -113,6 +112,20 @@ export default function MandrillEmailContentInner() {
 
         // Log the fetched activities for debugging
         console.log("Fetched activities:", mappedActivities);
+
+        // Fallback client-side filtering if API does not filter correctly
+        let filtered = mappedActivities;
+        if (searchTerm) {
+          const lowerSearchTerm = searchTerm.toLowerCase();
+          filtered = mappedActivities.filter(
+            (activity) =>
+              activity.email.toLowerCase().includes(lowerSearchTerm) ||
+              activity.subject.toLowerCase().includes(lowerSearchTerm) ||
+              activity.status.toLowerCase().includes(lowerSearchTerm)
+          );
+        }
+        console.log("Filtered activities (client-side fallback):", filtered);
+        setFilteredActivities(filtered);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -316,6 +329,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
+            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
@@ -412,40 +426,40 @@ export default function MandrillEmailContentInner() {
           </div>
         )}
 
-          <div className="pagination-section">
-            <div className="rows-selector">
-              <span>View</span>
-              <select
-                className="rows-select"
-                value={limit}
-                onChange={(e) => handleLimitChange(Number(e.target.value))}
-              >
-                <option value={100}>100 Row</option>
-                <option value={500}>500 Row</option>
-                <option value={1000}>1000 Row</option>
-              </select>
-            </div>
-            <div className="pagination-controls">
-              <span>
-                {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount}
-              </span>
-              <button
-                className="pagination-button"
-                onClick={() => handlePageChange(offset - limit)}
-                disabled={offset === 0 || isLoading}
-              >
-                &lt;&lt;
-              </button>
-              <button
-                className="pagination-button"
-                onClick={() => handlePageChange(offset + limit)}
-                disabled={offset + limit >= totalCount || isLoading}
-              >
-                &gt;&gt;
-              </button>
-            </div>
+        <div className="pagination-section">
+          <div className="rows-selector">
+            <span>View</span>
+            <select
+              className="rows-select"
+              value={limit}
+              onChange={(e) => handleLimitChange(Number(e.target.value))}
+            >
+              <option value={100}>100 Row</option>
+              <option value={500}>500 Row</option>
+              <option value={1000}>1000 Row</option>
+            </select>
+          </div>
+          <div className="pagination-controls">
+            <span>
+              {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount}
+            </span>
+            <button
+              className="pagination-button"
+              onClick={() => handlePageChange(offset - limit)}
+              disabled={offset === 0 || isLoading}
+            >
+              &lt;&lt;
+            </button>
+            <button
+              className="pagination-button"
+              onClick={() => handlePageChange(offset + limit)}
+              disabled={offset + limit >= totalCount || isLoading}
+            >
+              &gt;&gt;
+            </button>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
