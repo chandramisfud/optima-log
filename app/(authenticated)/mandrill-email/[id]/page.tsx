@@ -38,6 +38,8 @@ export default function EmailContentPage() {
           setError("Message not found");
         } else if (error.response?.status === 401) {
           setError("Unauthorized");
+          // Optionally redirect to login page
+          window.location.href = '/';
         } else {
           setError("Failed to fetch email content");
         }
@@ -50,27 +52,27 @@ export default function EmailContentPage() {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div style={{ padding: '20px', textAlign: 'center' }}>Loading...</div>;
   }
 
   if (error) {
-    return <div className="text-red-500">{error}</div>;
+    return <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>{error}</div>;
   }
 
   if (!emailContent) {
-    return <div>No content available</div>;
+    return <div style={{ padding: '20px', textAlign: 'center' }}>No content available</div>;
   }
 
   return (
-    <div style={{ padding: '20px', background: 'white', borderRadius: '8px', width: '80%', margin: '0 auto', maxHeight: '80vh', overflowY: 'auto' }}>
-      <h3>Email Content</h3>
-      <p><strong>Subject:</strong> {emailContent.subject}</p>
-      <p><strong>From:</strong> {emailContent.from_name ? `${emailContent.from_name} <${emailContent.from_email}>` : emailContent.from_email}</p>
-      <p><strong>To:</strong> {emailContent.to.map(recipient => recipient.email).join(', ')}</p>
-      <hr />
+    <div style={{ padding: '20px', background: 'white', width: '100%', height: '100%', overflowY: 'auto' }}>
+      <h3 style={{ marginBottom: '20px' }}>Email Content</h3>
+      <p style={{ marginBottom: '10px' }}><strong>Subject:</strong> {emailContent.subject}</p>
+      <p style={{ marginBottom: '10px' }}><strong>From:</strong> {emailContent.from_name ? `${emailContent.from_name} <${emailContent.from_email}>` : emailContent.from_email}</p>
+      <p style={{ marginBottom: '10px' }}><strong>To:</strong> {emailContent.to.map(recipient => recipient.email).join(', ')}</p>
+      <hr style={{ margin: '20px 0' }} />
       <div
         dangerouslySetInnerHTML={{ __html: emailContent.content }}
-        style={{ border: '1px solid #ddd', padding: '10px', borderRadius: '4px' }}
+        style={{ border: '1px solid #ddd', padding: '10px', borderRadius: '4px', overflow: 'auto' }}
       />
     </div>
   );
