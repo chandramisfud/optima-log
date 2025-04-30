@@ -114,7 +114,8 @@ export const getMandrillActivity = (
   date_from: string,
   date_to: string,
   limit: number,
-  offset: number
+  offset: number,
+  keyword: string = ""
 ): Promise<AxiosResponse<MandrillActivityResponse>> => {
   return api.post('/api/mandrill/activity', { status, date_from, date_to, limit, offset });
 };
@@ -124,7 +125,8 @@ export const exportMandrillActivity = (
   date_from: string,
   date_to: string,
   limit: number,
-  offset: number
+  offset: number,
+  keyword: string = ""
 ): Promise<AxiosResponse<Blob>> => {
   return api.post('/api/mandrill/export', { status, date_from, date_to, limit, offset }, { responseType: 'blob' });
 };

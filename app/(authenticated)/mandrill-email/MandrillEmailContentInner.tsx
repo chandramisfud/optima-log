@@ -6,16 +6,26 @@ import { useSearchParams } from "next/navigation";
 import { getMandrillActivity, exportMandrillActivity, getMandrillContent } from "@/lib/api";
 import { MandrillActivity, MandrillStats } from "@/types/mandrill";
 import { escapeHtml } from "@/lib/utils";
-import he from 'he'; // Import the he library to unescape HTML
+import he from 'he';
 
 export default function MandrillEmailContentInner() {
   const searchParams = useSearchParams();
   const env = searchParams.get("env") || "dev";
   const platform = searchParams.get("platform") || "XVA";
 
-  // Set default date range to a broader period to include more emails
-  const [dateFrom, setDateFrom] = useState<string>("2025-03-01");
-  const [dateTo, setDateTo] = useState<string>("2025-04-07");
+  // Calculate the default date range (last 7 days)
+  const today = new Date(); // Current date: April 30, 2025
+  const last7Days = new Date(today);
+  last7Days.setDate(today.getDate() - 7); // 7 days ago: April 24, 2025
+
+  // Format dates as YYYY-MM-DD
+  const formatDate = (date: Date) => date.toISOString().split('T')[0];
+  const defaultDateTo = formatDate(today); // "2025-04-30"
+  const defaultDateFrom = formatDate(last7Days); // "2025-04-24"
+
+  const [dateFrom, setDateFrom] = useState<string>(defaultDateFrom);
+  const [dateTo, setDateTo] = useState<string>(defaultDateTo);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [status, setStatus] = useState<string>(""); // Default to empty string to show all emails initially
@@ -50,12 +60,27 @@ export default function MandrillEmailContentInner() {
   const fetchActivities = async () => {
     setIsLoading(true);
     setError(null);
+    setDateError(null);
+
+    // Validate date range
+    const fromDate = new Date(dateFrom);
+    const toDate = new Date(dateTo);
+    if (fromDate > toDate) {
+      setDateError("Start date cannot be after end date");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Pass the status filter as an array to the API
-      const statusFilter = status ? [status] : [];
-      console.log("Fetching activities with status filter:", statusFilter);
+      let statusFilter = status ? [status] : [];
+      // Remove status filter if search term contains an email address
+      if (searchTerm.includes('@')) {
+        statusFilter = [];
+      }
+      console.log("Fetching activities with status filter:", statusFilter, "keyword:", searchTerm);
 
-      const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset);
+      const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset, searchTerm);
       const data = response.data;
 
       // Check if the response has the expected structure
@@ -73,6 +98,7 @@ export default function MandrillEmailContentInner() {
         }));
 
         setAllActivities(mappedActivities);
+        setFilteredActivities(mappedActivities); // No client-side filtering needed
         setTotalCount(data.total_count);
 
         // Update stats using the metrics and quota from the response
@@ -91,6 +117,7 @@ export default function MandrillEmailContentInner() {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
         setAllActivities([]);
+        setFilteredActivities([]);
         setTotalCount(0);
         setStats({
           delivered: 0,
@@ -103,12 +130,15 @@ export default function MandrillEmailContentInner() {
       }
     } catch (error: any) {
       console.error("Error fetching email activity:", error);
-      if (error.response?.status === 403) {
+      if (error.response?.status === 400) {
+        setError(error.response.data.error || "Invalid request");
+      } else if (error.response?.status === 403) {
         setError("Unauthorized: Admin role required");
       } else {
         setError("Failed to fetch email activity");
       }
       setAllActivities([]);
+      setFilteredActivities([]);
       setTotalCount(0);
       setStats({
         delivered: 0,
@@ -123,35 +153,17 @@ export default function MandrillEmailContentInner() {
     }
   };
 
-  // Filter activities based on search term only (status filtering is handled by the API)
-  useEffect(() => {
-    let filtered = allActivities;
-
-    // Apply search term filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (activity) =>
-          activity.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          activity.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          activity.status.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    console.log("Filtered activities (after search):", filtered);
-    setFilteredActivities(filtered);
-  }, [allActivities, searchTerm]);
-
-  // Fetch activities when status, date range, limit, or offset changes
+  // Fetch activities when status, date range, limit, offset, or search term changes
   useEffect(() => {
     fetchActivities();
-  }, [status, dateFrom, dateTo, limit, offset]);
+  }, [status, dateFrom, dateTo, limit, offset, searchTerm]);
 
   const handleExport = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const statusFilter = status ? [status] : [];
-      const response = await exportMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset);
+      const response = await exportMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset, searchTerm);
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -174,7 +186,7 @@ export default function MandrillEmailContentInner() {
       const response = await getMandrillContent(id);
       const data = response.data;
       setSelectedEmail({
-        content: he.decode(data.content), // Unescape the HTML content
+        content: he.decode(data.content),
         subject: data.subject,
         from_email: data.from_email,
         from_name: data.from_name,
@@ -224,11 +236,21 @@ export default function MandrillEmailContentInner() {
       );
     }
 
+    if (dateError) {
+      return (
+        <tr>
+          <td colSpan={5} className="table-cell text-red-500">
+            {dateError}
+          </td>
+        </tr>
+      );
+    }
+
     if (error) {
       return (
         <tr>
           <td colSpan={5} className="table-cell text-red-500">
-            {escapeHtml(error)}
+            {error}
           </td>
         </tr>
       );
@@ -294,7 +316,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-\          </div>
+          </div>
         </div>
 
         <div className="filter-section">
@@ -390,40 +412,40 @@ export default function MandrillEmailContentInner() {
           </div>
         )}
 
-        <div className="pagination-section">
-          <div className="rows-selector">
-            <span>View</span>
-            <select
-              className="rows-select"
-              value={limit}
-              onChange={(e) => handleLimitChange(Number(e.target.value))}
-            >
-              <option value={100}>100 Row</option>
-              <option value={500}>500 Row</option>
-              <option value={1000}>1000 Row</option>
-            </select>
-          </div>
-          <div className="pagination-controls">
-            <span>
-              {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount}
-            </span>
-            <button
-              className="pagination-button"
-              onClick={() => handlePageChange(offset - limit)}
-              disabled={offset === 0 || isLoading}
-            >
-              &lt;&lt;
-            </button>
-            <button
-              className="pagination-button"
-              onClick={() => handlePageChange(offset + limit)}
-              disabled={offset + limit >= totalCount || isLoading}
-            >
-              &gt;&gt;
-            </button>
+          <div className="pagination-section">
+            <div className="rows-selector">
+              <span>View</span>
+              <select
+                className="rows-select"
+                value={limit}
+                onChange={(e) => handleLimitChange(Number(e.target.value))}
+              >
+                <option value={100}>100 Row</option>
+                <option value={500}>500 Row</option>
+                <option value={1000}>1000 Row</option>
+              </select>
+            </div>
+            <div className="pagination-controls">
+              <span>
+                {offset + 1}-{Math.min(offset + limit, totalCount)} of {totalCount}
+              </span>
+              <button
+                className="pagination-button"
+                onClick={() => handlePageChange(offset - limit)}
+                disabled={offset === 0 || isLoading}
+              >
+                &lt;&lt;
+              </button>
+              <button
+                className="pagination-button"
+                onClick={() => handlePageChange(offset + limit)}
+                disabled={offset + limit >= totalCount || isLoading}
+              >
+                &gt;&gt;
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
