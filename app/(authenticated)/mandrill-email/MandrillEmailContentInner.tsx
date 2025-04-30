@@ -189,7 +189,7 @@ export default function MandrillEmailContentInner() {
 
   const handleViewContent = (id: string) => {
     // Open the email content in a new tab
-    const url = `/mandrill-email/${id}`;
+    const url = `/mandrill-email-content/${id}`;
     window.open(url, '_blank');
   };
 
