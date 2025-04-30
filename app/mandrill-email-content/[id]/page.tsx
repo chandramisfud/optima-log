@@ -1,4 +1,4 @@
-// app/(authenticated)/mandrill-email/[id]/page.tsx
+// app/mandrill-email-content/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -38,7 +38,7 @@ export default function EmailContentPage() {
           setError("Message not found");
         } else if (error.response?.status === 401) {
           setError("Unauthorized");
-          // Optionally redirect to login page
+          // Redirect to login page
           window.location.href = '/';
         } else {
           setError("Failed to fetch email content");
