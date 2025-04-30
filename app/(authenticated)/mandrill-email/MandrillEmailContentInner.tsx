@@ -7,6 +7,7 @@ import { getMandrillActivity, exportMandrillActivity, getMandrillContent } from 
 import { MandrillActivity, MandrillStats } from "@/types/mandrill";
 import { escapeHtml } from "@/lib/utils";
 import he from 'he';
+import { debounce } from 'lodash';
 
 export default function MandrillEmailContentInner() {
   const searchParams = useSearchParams();
@@ -83,7 +84,14 @@ export default function MandrillEmailContentInner() {
       if (searchTerm.includes('@')) {
         statusFilter = [];
       }
-      console.log("Fetching activities with status filter:", statusFilter, "keyword:", searchTerm);
+      console.log("API Request Parameters:", {
+        statusFilter,
+        dateFrom,
+        dateTo,
+        limit,
+        offset,
+        searchTerm,
+      });
 
       const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset, searchTerm);
       const data = response.data;
@@ -92,7 +100,7 @@ export default function MandrillEmailContentInner() {
       if (data && Array.isArray(data.messages)) {
         // Map the messages to the MandrillActivity format, stripping <mark> tags from the email field
         const mappedActivities: MandrillActivity[] = data.messages.map((msg: any) => ({
-          email: stripMarkTags(msg.email), // Remove <mark> tags from email
+          email: stripMarkTags(msg.email),
           subject: msg.subject,
           status: msg.state,
           date: new Date(msg.ts * 1000).toISOString().split('T')[0],
@@ -118,28 +126,8 @@ export default function MandrillEmailContentInner() {
         // Log the fetched activities for debugging
         console.log("Fetched activities:", mappedActivities);
 
-        // Apply client-side filtering for search term if needed
-        let filtered = mappedActivities;
-        if (searchTerm) {
-          const lowerSearchTerm = searchTerm.toLowerCase();
-          filtered = mappedActivities.filter(
-            (activity) =>
-              activity.email.toLowerCase().includes(lowerSearchTerm) ||
-              activity.subject.toLowerCase().includes(lowerSearchTerm) ||
-              activity.status.toLowerCase().includes(lowerSearchTerm)
-          );
-        }
-
-        // Apply client-side filtering for status if needed
-        if (status) {
-          const lowerStatus = status.toLowerCase();
-          filtered = filtered.filter(
-            (activity) => activity.status.toLowerCase() === lowerStatus
-          );
-        }
-
-        console.log("Filtered activities (client-side):", filtered);
-        setFilteredActivities(filtered);
+        // Use the mapped activities directly (remove redundant client-side filtering)
+        setFilteredActivities(mappedActivities);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -180,9 +168,15 @@ export default function MandrillEmailContentInner() {
     }
   };
 
+  // Debounce the fetchActivities function to prevent multiple API calls on rapid input changes
+  const debouncedFetchActivities = debounce(fetchActivities, 300);
+
   // Fetch activities when status, date range, limit, offset, or search term changes
   useEffect(() => {
-    fetchActivities();
+    debouncedFetchActivities();
+    return () => {
+      debouncedFetchActivities.cancel();
+    };
   }, [status, dateFrom, dateTo, limit, offset, searchTerm]);
 
   const handleExport = async () => {
@@ -355,7 +349,7 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("delivered")}
             >
               <span>Delivered</span>
-              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span>
+              <span className="badge">{stats.delivered}</span>
             </div>
             <div
               className={`filter-badge ${status === "rejected" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"} cursor-pointer`}
@@ -373,10 +367,10 @@ export default function MandrillEmailContentInner() {
         <div className="stats-section">
           <div className="stats-row">
             <div className="stat-box">
-              <span className="stat-value">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span> DELIVERED
+              <span className="stat-value">{stats.delivered}</span> DELIVERED
             </div>
             <div className="stat-box">
-              <span className="stat-value">{allActivities.length}</span> SENT
+              <span className="stat-value">{stats.sent}</span> SENT
             </div>
             <div className="stat-box">
               <span className="stat-value">{stats.deliverability}</span> DELIVERABILITY
