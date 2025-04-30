@@ -5,4 +5,5 @@ export default function EmailContentLayout({ children }: { children: React.React
         {children}
       </div>
     );
+    
   }
