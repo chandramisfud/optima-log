@@ -3,10 +3,9 @@
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { getMandrillActivity, exportMandrillActivity, getMandrillContent } from "@/lib/api";
+import { getMandrillActivity, exportMandrillActivity } from "@/lib/api";
 import { MandrillActivity, MandrillStats } from "@/types/mandrill";
 import { escapeHtml } from "@/lib/utils";
-import he from 'he';
 import { debounce } from 'lodash';
 
 export default function MandrillEmailContentInner() {
@@ -15,14 +14,14 @@ export default function MandrillEmailContentInner() {
   const platform = searchParams.get("platform") || "XVA";
 
   // Calculate the default date range (last 7 days)
-  const today = new Date(); // Current date: April 30, 2025
+  const today = new Date();
   const last7Days = new Date(today);
-  last7Days.setDate(today.getDate() - 7); // 7 days ago: April 24, 2025
+  last7Days.setDate(today.getDate() - 7);
 
   // Format dates as YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  const defaultDateTo = "2025-04-29"; // Align with API test: "2025-04-29"
-  const defaultDateFrom = "2025-04-23"; // Align with API test: "2025-04-23"
+  const defaultDateTo = formatDate(today);
+  const defaultDateFrom = formatDate(last7Days);
 
   const [dateFrom, setDateFrom] = useState<string>(defaultDateFrom);
   const [dateTo, setDateTo] = useState<string>(defaultDateTo);
@@ -45,18 +44,6 @@ export default function MandrillEmailContentInner() {
     sends: 0,
     resetDate: "APRIL 7, 2025",
   });
-
-  // State for email content modal
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedEmail, setSelectedEmail] = useState<{
-    content: string;
-    subject: string;
-    from_email: string;
-    from_name: string;
-    to: { email: string; name: string; type: string }[];
-  } | null>(null);
-  const [contentLoading, setContentLoading] = useState(false);
-  const [contentError, setContentError] = useState<string | null>(null);
 
   // Helper function to strip <mark> tags from a string
   const stripMarkTags = (text: string) => {
@@ -200,38 +187,10 @@ export default function MandrillEmailContentInner() {
     }
   };
 
-  const handleViewContent = async (id: string) => {
-    setContentLoading(true);
-    setContentError(null);
-    try {
-      const response = await getMandrillContent(id);
-      const data = response.data;
-      setSelectedEmail({
-        content: he.decode(data.content),
-        subject: data.subject,
-        from_email: data.from_email,
-        from_name: data.from_name,
-        to: data.to,
-      });
-      setIsModalOpen(true);
-    } catch (error: any) {
-      console.error("Error fetching email content:", error);
-      if (error.response?.status === 404) {
-        setContentError("Message not found");
-      } else if (error.response?.status === 401) {
-        setContentError("Unauthorized");
-      } else {
-        setContentError("Failed to fetch email content");
-      }
-    } finally {
-      setContentLoading(false);
-    }
-  };
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedEmail(null);
-    setContentError(null);
+  const handleViewContent = (id: string) => {
+    // Open the email content in a new tab
+    const url = `/mandrill-email/${id}`;
+    window.open(url, '_blank');
   };
 
   const handlePageChange = (newOffset: number) => {
@@ -297,9 +256,8 @@ export default function MandrillEmailContentInner() {
           <button
             className="link-button"
             onClick={() => handleViewContent(activity._id!)}
-            disabled={contentLoading}
           >
-            {contentLoading ? "Loading..." : "View Content"}
+            View Content
           </button>
         </td>
       </tr>
@@ -337,7 +295,6 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
@@ -409,31 +366,6 @@ export default function MandrillEmailContentInner() {
           </table>
         </div>
 
-        {isModalOpen && selectedEmail && (
-          <div className="modal" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div className="modal-content" style={{ background: 'white', padding: '20px', borderRadius: '8px', width: '80%', maxHeight: '80%', overflowY: 'auto' }}>
-              <h3>Email Content</h3>
-              {contentError ? (
-                <p className="text-red-500">{contentError}</p>
-              ) : (
-                <>
-                  <p><strong>Subject:</strong> {selectedEmail.subject}</p>
-                  <p><strong>From:</strong> {selectedEmail.from_name ? `${selectedEmail.from_name} <${selectedEmail.from_email}>` : selectedEmail.from_email}</p>
-                  <p><strong>To:</strong> {selectedEmail.to.map(recipient => recipient.email).join(', ')}</p>
-                  <hr />
-                  <div
-                    dangerouslySetInnerHTML={{ __html: selectedEmail.content }}
-                    style={{ border: '1px solid #ddd', padding: '10px', borderRadius: '4px' }}
-                  />
-                </>
-              )}
-              <button onClick={closeModal} style={{ marginTop: '10px', padding: '5px 10px' }}>
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-
         <div className="pagination-section">
           <div className="rows-selector">
             <span>View</span>
@@ -456,14 +388,14 @@ export default function MandrillEmailContentInner() {
               onClick={() => handlePageChange(offset - limit)}
               disabled={offset === 0 || isLoading}
             >
-              &lt;&lt;
+              {"<<"}
             </button>
             <button
               className="pagination-button"
               onClick={() => handlePageChange(offset + limit)}
               disabled={offset + limit >= totalCount || isLoading}
             >
-              &gt;&gt;
+              {">>"}
             </button>
           </div>
         </div>
