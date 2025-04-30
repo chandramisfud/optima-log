@@ -57,6 +57,11 @@ export default function MandrillEmailContentInner() {
   const [contentLoading, setContentLoading] = useState(false);
   const [contentError, setContentError] = useState<string | null>(null);
 
+  // Helper function to strip <mark> tags from a string
+  const stripMarkTags = (text: string) => {
+    return text.replace(/<mark>|<\/mark>/g, '');
+  };
+
   const fetchActivities = async () => {
     setIsLoading(true);
     setError(null);
@@ -85,9 +90,9 @@ export default function MandrillEmailContentInner() {
 
       // Check if the response has the expected structure
       if (data && Array.isArray(data.messages)) {
-        // Map the messages to the MandrillActivity format
+        // Map the messages to the MandrillActivity format, stripping <mark> tags from the email field
         const mappedActivities: MandrillActivity[] = data.messages.map((msg: any) => ({
-          email: msg.email,
+          email: stripMarkTags(msg.email), // Remove <mark> tags from email
           subject: msg.subject,
           status: msg.state,
           date: new Date(msg.ts * 1000).toISOString().split('T')[0],
@@ -113,19 +118,8 @@ export default function MandrillEmailContentInner() {
         // Log the fetched activities for debugging
         console.log("Fetched activities:", mappedActivities);
 
-        // Fallback client-side filtering if API does not filter correctly
-        let filtered = mappedActivities;
-        if (searchTerm) {
-          const lowerSearchTerm = searchTerm.toLowerCase();
-          filtered = mappedActivities.filter(
-            (activity) =>
-              activity.email.toLowerCase().includes(lowerSearchTerm) ||
-              activity.subject.toLowerCase().includes(lowerSearchTerm) ||
-              activity.status.toLowerCase().includes(lowerSearchTerm)
-          );
-        }
-        console.log("Filtered activities (client-side fallback):", filtered);
-        setFilteredActivities(filtered);
+        // Since the API should handle the filtering, use the mapped activities directly
+        setFilteredActivities(mappedActivities);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -329,7 +323,6 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
-            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
