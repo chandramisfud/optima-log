@@ -1,4 +1,3 @@
-// app/(authenticated)/mandrill-email/MandrillEmailContentInner.tsx
 "use client"
 
 import { useState, useEffect } from "react";
@@ -14,14 +13,14 @@ export default function MandrillEmailContentInner() {
   const platform = searchParams.get("platform") || "XVA";
 
   // Calculate the default date range (last 7 days)
-  const today = new Date();
+  const today = new Date(); // Current date: April 30, 2025
   const last7Days = new Date(today);
-  last7Days.setDate(today.getDate() - 7);
+  last7Days.setDate(today.getDate() - 7); // 7 days ago: April 23, 2025
 
   // Format dates as YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  const defaultDateTo = formatDate(today);
-  const defaultDateFrom = formatDate(last7Days);
+  const defaultDateTo = formatDate(today); // "2025-04-30"
+  const defaultDateFrom = formatDate(last7Days); // "2025-04-23"
 
   const [dateFrom, setDateFrom] = useState<string>(defaultDateFrom);
   const [dateTo, setDateTo] = useState<string>(defaultDateTo);
@@ -42,7 +41,13 @@ export default function MandrillEmailContentInner() {
     deliverability: "0%",
     quota: 225000,
     sends: 0,
-    resetDate: "APRIL 7, 2025",
+    resetDate: formatDate(today),
+    rejected: 0,
+    hardBounces: 0,
+    softBounces: 0,
+    unsubscribes: 0,
+    spamComplaints: 0,
+    percentageUsed: 0,
   });
 
   // Helper function to strip <mark> tags from a string
@@ -50,7 +55,7 @@ export default function MandrillEmailContentInner() {
     return text.replace(/<mark>|<\/mark>/g, '');
   };
 
-  const fetchActivities = async () => {
+  const fetchActivities = async (keyword: string = "") => {
     setIsLoading(true);
     setError(null);
     setDateError(null);
@@ -67,27 +72,23 @@ export default function MandrillEmailContentInner() {
     try {
       // Pass the status filter as an array to the API
       let statusFilter = status ? [status] : [];
-      // Remove status filter if search term contains an email address
-      if (searchTerm.includes('@')) {
-        statusFilter = [];
-      }
       console.log("API Request Parameters:", {
         statusFilter,
         dateFrom,
         dateTo,
         limit,
         offset,
-        searchTerm,
+        keyword,
       });
 
-      const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset, searchTerm);
+      const response = await getMandrillActivity(statusFilter, dateFrom, dateTo, limit, offset, keyword);
       const data = response.data;
 
       // Check if the response has the expected structure
       if (data && Array.isArray(data.messages)) {
-        // Map the messages to the MandrillActivity format, stripping <mark> tags from the email field
+        // Map the messages to the MandrillActivity format, keeping <mark> tags for highlighting
         const mappedActivities: MandrillActivity[] = data.messages.map((msg: any) => ({
-          email: stripMarkTags(msg.email),
+          email: msg.email, // Keep <mark> tags for highlighting
           subject: msg.subject,
           status: msg.state,
           date: new Date(msg.ts * 1000).toISOString().split('T')[0],
@@ -97,24 +98,33 @@ export default function MandrillEmailContentInner() {
           ts: msg.ts,
         }));
 
+        console.log("Raw API messages:", data.messages);
+        console.log("Mapped activities:", mappedActivities);
+
         setAllActivities(mappedActivities);
+        setFilteredActivities(mappedActivities); // No client-side filtering needed
         setTotalCount(data.total_count);
 
         // Update stats using the metrics and quota from the response
         setStats({
-          delivered: data.metrics.delivered,
+          delivered: data.metrics.delivered >= 0 ? data.metrics.delivered : 0, // Prevent negative delivered
           sent: data.metrics.sent,
           deliverability: data.metrics.deliverability.toFixed(2) + "%",
           quota: data.quota.monthly_limit,
           sends: data.quota.emails_sent,
           resetDate: data.quota.reset_date,
+          rejected: data.metrics.rejected,
+          hardBounces: data.metrics.hardBounces,
+          softBounces: data.metrics.softBounces,
+          unsubscribes: data.metrics.unsubscribes,
+          spamComplaints: data.metrics.spamComplaints,
+          percentageUsed: data.quota.percentage_used,
         });
 
         // Log the fetched activities for debugging
         console.log("Fetched activities:", mappedActivities);
-
-        // Use the mapped activities directly (remove redundant client-side filtering)
-        setFilteredActivities(mappedActivities);
+        console.log("Emails sent since reset:", data.quota.emails_sent);
+        console.log("Next reset date:", data.quota.reset_date);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -127,18 +137,31 @@ export default function MandrillEmailContentInner() {
           deliverability: "0%",
           quota: 225000,
           sends: 0,
-          resetDate: "APRIL 7, 2025",
+          resetDate: formatDate(today),
+          rejected: 0,
+          hardBounces: 0,
+          softBounces: 0,
+          unsubscribes: 0,
+          spamComplaints: 0,
+          percentageUsed: 0,
         });
       }
     } catch (error: any) {
       console.error("Error fetching email activity:", error);
-      if (error.response?.status === 400) {
-        setError(error.response.data.error || "Invalid request");
-      } else if (error.response?.status === 403) {
-        setError("Unauthorized: Admin role required");
-      } else {
-        setError("Failed to fetch email activity");
+      let errorMessage = "Failed to fetch email activity";
+      if (error.response) {
+        console.log("Server response:", error.response.data);
+        if (error.response.status === 400) {
+          errorMessage = error.response.data.error || "Invalid request";
+        } else if (error.response.status === 403) {
+          errorMessage = "Unauthorized: Admin role required";
+        } else if (error.response.status === 429) {
+          errorMessage = "Rate limit exceeded: Please try again later";
+        } else if (error.response.status === 500) {
+          errorMessage = error.response.data.error || "Server error: Please try again later or contact support";
+        }
       }
+      setError(errorMessage);
       setAllActivities([]);
       setFilteredActivities([]);
       setTotalCount(0);
@@ -148,7 +171,13 @@ export default function MandrillEmailContentInner() {
         deliverability: "0%",
         quota: 225000,
         sends: 0,
-        resetDate: "APRIL 7, 2025",
+        resetDate: formatDate(today),
+        rejected: 0,
+        hardBounces: 0,
+        softBounces: 0,
+        unsubscribes: 0,
+        spamComplaints: 0,
+        percentageUsed: 0,
       });
     } finally {
       setIsLoading(false);
@@ -158,13 +187,20 @@ export default function MandrillEmailContentInner() {
   // Debounce the fetchActivities function to prevent multiple API calls on rapid input changes
   const debouncedFetchActivities = debounce(fetchActivities, 300);
 
-  // Fetch activities when status, date range, limit, offset, or search term changes
+  // Fetch activities when status, date range, limit, or offset changes
   useEffect(() => {
-    debouncedFetchActivities();
+    debouncedFetchActivities(); // Fetch without keyword initially
     return () => {
       debouncedFetchActivities.cancel();
     };
-  }, [status, dateFrom, dateTo, limit, offset, searchTerm]);
+  }, [status, dateFrom, dateTo, limit, offset]);
+
+  // Handle "Enter" key press to trigger search with keyword
+  const handleSearchKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      debouncedFetchActivities(searchTerm);
+    }
+  };
 
   const handleExport = async () => {
     setIsLoading(true);
@@ -179,16 +215,29 @@ export default function MandrillEmailContentInner() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error exporting email activity:", error);
-      setError("Failed to export email activity");
+      let errorMessage = "Failed to export email activity";
+      if (error.response) {
+        console.log("Server response:", error.response.data);
+        if (error.response.status === 400) {
+          errorMessage = error.response.data.error || "Invalid request";
+        } else if (error.response.status === 403) {
+          errorMessage = "Unauthorized: Admin role required";
+        } else if (error.response.status === 429) {
+          errorMessage = "Rate limit exceeded: Please try again later";
+        } else if (error.response.status === 500) {
+          errorMessage = error.response.data.error || "Server error: Please try again later or contact support";
+        }
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleViewContent = (id: string) => {
-    // Open the email content in a new tab
+    // Open the email content in a new tab using the new route
     const url = `/mandrill-email-content/${id}`;
     window.open(url, '_blank');
   };
@@ -250,8 +299,8 @@ export default function MandrillEmailContentInner() {
       <tr key={index} className="table-row">
         <td className="table-cell">{escapeHtml(activity.status)}</td>
         <td className="table-cell">{escapeHtml(activity.clock)}</td>
-        <td className="table-cell">{escapeHtml(activity.email)}</td>
-        <td className="table-cell">{escapeHtml(activity.subject)}</td>
+        <td className="table-cell" dangerouslySetInnerHTML={{ __html: activity.email }} />
+        <td className="table-cell" dangerouslySetInnerHTML={{ __html: activity.subject }} />
         <td className="table-cell">
           <button
             className="link-button"
@@ -275,9 +324,10 @@ export default function MandrillEmailContentInner() {
           <div className="search-container">
             <span className="search-icon">🔍</span>
             <input
-              placeholder="Search activity"
+              placeholder="Search activity (press Enter to search)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleSearchKeyPress}
               className="search-input"
             />
           </div>
@@ -313,10 +363,17 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("rejected")}
             >
               <span>Rejected</span>
-              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "rejected").length}</span>
+              <span className="badge">{stats.rejected}</span>
+            </div>
+            <div
+              className={`filter-badge ${status === "" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"} cursor-pointer`}
+              onClick={() => setStatus("")}
+            >
+              <span>All</span>
+              <span className="badge">{stats.sent}</span>
             </div>
             <button className="control-button" onClick={() => setStatus("")}>
-              OK
+              Clear Filter
             </button>
           </div>
         </div>
@@ -332,16 +389,27 @@ export default function MandrillEmailContentInner() {
             <div className="stat-box">
               <span className="stat-value">{stats.deliverability}</span> DELIVERABILITY
             </div>
+            <div className="stat-box">
+              <span className="stat-value">{stats.rejected}</span> REJECTED
+            </div>
           </div>
 
           <div className="quota-box">
             <h3 className="quota-title">MONTHLY QUOTA</h3>
             <div className="quota-row">
               <span>EMAIL QUOTA : {stats.quota}</span>
-              <span>{stats.quota && stats.sends ? ((stats.sends / stats.quota) * 100).toFixed(3) + "%" : "N/A"}</span>
+            </div>
+            <div className="quota-row">
+              <span>QUOTA USAGE (%) : {stats.percentageUsed ? stats.percentageUsed.toFixed(3) + "%" : "N/A"}</span>
             </div>
             <div className="quota-row">EMAIL SENDS : {stats.sends}</div>
-            <div className="quota-row">RESET ON {stats.resetDate}</div>
+            <div className="quota-row">
+              RESET ON {new Date(stats.resetDate).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              })}
+            </div>
           </div>
         </div>
 
