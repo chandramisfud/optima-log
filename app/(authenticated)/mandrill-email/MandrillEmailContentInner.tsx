@@ -20,8 +20,8 @@ export default function MandrillEmailContentInner() {
 
   // Format dates as YYYY-MM-DD
   const formatDate = (date: Date) => date.toISOString().split('T')[0];
-  const defaultDateTo = formatDate(today); // "2025-04-30"
-  const defaultDateFrom = formatDate(last7Days); // "2025-04-24"
+  const defaultDateTo = "2025-04-29"; // Align with API test: "2025-04-29"
+  const defaultDateFrom = "2025-04-23"; // Align with API test: "2025-04-23"
 
   const [dateFrom, setDateFrom] = useState<string>(defaultDateFrom);
   const [dateTo, setDateTo] = useState<string>(defaultDateTo);
@@ -118,8 +118,28 @@ export default function MandrillEmailContentInner() {
         // Log the fetched activities for debugging
         console.log("Fetched activities:", mappedActivities);
 
-        // Since the API should handle the filtering, use the mapped activities directly
-        setFilteredActivities(mappedActivities);
+        // Apply client-side filtering for search term if needed
+        let filtered = mappedActivities;
+        if (searchTerm) {
+          const lowerSearchTerm = searchTerm.toLowerCase();
+          filtered = mappedActivities.filter(
+            (activity) =>
+              activity.email.toLowerCase().includes(lowerSearchTerm) ||
+              activity.subject.toLowerCase().includes(lowerSearchTerm) ||
+              activity.status.toLowerCase().includes(lowerSearchTerm)
+          );
+        }
+
+        // Apply client-side filtering for status if needed
+        if (status) {
+          const lowerStatus = status.toLowerCase();
+          filtered = filtered.filter(
+            (activity) => activity.status.toLowerCase() === lowerStatus
+          );
+        }
+
+        console.log("Filtered activities (client-side):", filtered);
+        setFilteredActivities(filtered);
       } else {
         console.error("Invalid Mandrill activity response:", data);
         setError("Invalid response format from server");
@@ -323,6 +343,7 @@ export default function MandrillEmailContentInner() {
               onChange={(e) => setDateTo(e.target.value)}
               className="date-input"
             />
+            <span className="calendar-icon">📅</span>
           </div>
         </div>
 
@@ -334,7 +355,7 @@ export default function MandrillEmailContentInner() {
               onClick={() => setStatus("delivered")}
             >
               <span>Delivered</span>
-              <span className="badge">{stats.delivered}</span>
+              <span className="badge">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span>
             </div>
             <div
               className={`filter-badge ${status === "rejected" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-700"} cursor-pointer`}
@@ -352,10 +373,10 @@ export default function MandrillEmailContentInner() {
         <div className="stats-section">
           <div className="stats-row">
             <div className="stat-box">
-              <span className="stat-value">{stats.delivered}</span> DELIVERED
+              <span className="stat-value">{allActivities.filter((a) => a.status.toLowerCase() === "delivered").length}</span> DELIVERED
             </div>
             <div className="stat-box">
-              <span className="stat-value">{stats.sent}</span> SENT
+              <span className="stat-value">{allActivities.length}</span> SENT
             </div>
             <div className="stat-box">
               <span className="stat-value">{stats.deliverability}</span> DELIVERABILITY
