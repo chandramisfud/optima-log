@@ -110,25 +110,45 @@ export const downloadBackup = (
 };
 
 export const getMandrillActivity = (
-  status: string[], // Updated to accept an array of statuses
+  status: string[],
   date_from: string,
   date_to: string,
   limit: number,
   offset: number,
   keyword: string = ""
 ): Promise<AxiosResponse<MandrillActivityResponse>> => {
-  return api.post('/api/mandrill/activity', { status, date_from, date_to, limit, offset });
+  const page = Math.floor(offset / limit) + 1; 
+  return api.post('/api/mandrill/activity', {
+    status,
+    date_from,
+    date_to,
+    limit,
+    page,
+    page_size: limit,
+    keyword,
+    fetch_content: false,
+  });
 };
 
 export const exportMandrillActivity = (
-  status: string[], // Updated to accept an array of statuses
+  status: string[],
   date_from: string,
   date_to: string,
   limit: number,
   offset: number,
   keyword: string = ""
 ): Promise<AxiosResponse<Blob>> => {
-  return api.post('/api/mandrill/export', { status, date_from, date_to, limit, offset }, { responseType: 'blob' });
+  const page = Math.floor(offset / limit) + 1; 
+  return api.post('/api/mandrill/export', {
+    status,
+    date_from,
+    date_to,
+    limit,
+    page,
+    page_size: limit,
+    keyword,
+    fetch_content: false,
+  }, { responseType: 'blob' });
 };
 
 export const getMandrillContent = (
