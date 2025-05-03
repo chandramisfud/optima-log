@@ -163,4 +163,13 @@ export const getMandrillContent = (
   return api.get(`/api/mandrill/content/${id}`);
 };
 
+export const resendMandrillEmail = (
+  id: string
+): Promise<AxiosResponse<{
+  message: string;
+  new_message_id: string;
+}>> => {
+  return api.post(`/api/mandrill/resend/${id}`, {});
+};
+
 export default api;

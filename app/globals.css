@@ -62,6 +62,157 @@ body {
   background-color: hsl(120, 50%, 40%);
 }
 
+/* Mandrill-specific colors from master.css */
+.bg-mandrill-gray {
+  background-color: #d8d8d9; /* Table header background */
+}
+
+.text-mandrill-dark {
+  color: #4f4f4f; /* Table cell text color */
+}
+
+.text-mandrill-heading {
+  color: #575757; /* Table header text color */
+}
+
+.text-mandrill-hover {
+  color: #333; /* Table row hover text color */
+}
+
+.bg-mandrill-hover {
+  background-color: rgba(0, 0, 0, 0.035); /* Table row hover background */
+}
+
+.border-mandrill-divider {
+  border-color: rgba(191, 191, 191, 0.5); /* Table cell border */
+}
+
+.text-mandrill-link {
+  color: #0d7cad; /* Resend link color */
+}
+
+/* Status dot styles */
+.status-dot-delivered {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-color: #00cc00;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.status-dot-rejected {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-color: #ff0000;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.status-dot-bounce {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background-color: #ffcc00;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+/* Status text colors */
+.delivered {
+  color: #00cc00;
+}
+
+.rejected {
+  color: #ff0000;
+}
+
+.bounce {
+  color: #ffcc00;
+}
+
+/* View content link */
+.view-content {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+/* Resend button */
+.resend-btn {
+  background-color: #e5e5e5;
+  color: #333;
+  border: none;
+  padding: 5px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+/* Updated Mandrill table styles to match index.html */
+.table-container {
+  overflow-x: auto;
+}
+
+.table-container table {
+  width: 100%;
+  margin-bottom: 1.4em;
+  border-collapse: collapse;
+  border-spacing: 0;
+  border: 0;
+  font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+}
+
+.table-container thead th {
+  border-left: 1px solid transparent;
+  font-weight: bold;
+  color: #575757;
+  background-color: #d8d8d9;
+  height: 29px;
+  text-transform: capitalize;
+  font-size: 13px;
+  padding: 0 10px;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.table-container thead th:first-child {
+  border-left: none;
+}
+
+.table-container tbody td {
+  padding: 9px 10px;
+  font-size: 12px;
+  line-height: 1.5em;
+  vertical-align: middle;
+  color: #0066cc;
+  border-bottom: 1px solid #eee;
+}
+
+.table-container tbody td:first-child {
+  color: #333;
+}
+
+.table-container tr:last-child td {
+  border-bottom: none;
+}
+
+.table-container tr:hover {
+  background: rgba(0, 0, 0, 0.035);
+  color: #333;
+}
+
+.table-container .daybreak td {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #eee;
+  padding: 9px 10px;
+  vertical-align: middle;
+  color: #4f4f4f;
+  border: none;
+}
+
 /* Login page styles */
 .login-container {
   min-height: 100vh;
@@ -643,11 +794,6 @@ body {
   margin-bottom: 1rem;
 }
 
-.mandrill-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
 .link-button {
   background: none;
   border: none;
@@ -698,4 +844,3 @@ body {
   background-color: #1a202c;
   color: #f7fafc;
 }
-

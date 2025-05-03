@@ -8,6 +8,10 @@ export interface MandrillActivity {
   content: string;
   _id?: string;
   ts: number;
+  sender: string;
+  opens: number; 
+  clicks: number;
+  resend_email: string;
 }
 
 export interface MandrillQuota {
