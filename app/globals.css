@@ -2,11 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent any scaling or zooming globally */
+html,
+body,
+[class*=""],
+[style*=""] {
+  transform: none !important;
+  zoom: 1 !important;
+}
+
 /* Base styles */
 body {
   margin: 0;
   padding: 0;
-  font-family: "Inter", sans-serif;
+  font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
+  min-height: 100vh;
 }
 
 /* Custom color classes */
@@ -151,13 +161,16 @@ body {
 
 /* Updated Mandrill table styles to match index.html */
 .table-container {
-  overflow-x: auto;
+  width: 100%;
+  height: 100%; /* Take the full height of the parent */
+  overflow-x: auto; /* Horizontal scrolling for wide tables */
+  overflow-y: auto; /* Vertical scrolling for tall tables */
 }
 
 .table-container table {
   width: 100%;
   margin-bottom: 1.4em;
-  border-collapse: collapse;
+  border-collapse: collapse; /* Matches the visual appearance in the screenshot */
   border-spacing: 0;
   border: 0;
   font-family: "Helvetica Neue", Helvetica, Arial, Verdana, sans-serif;
@@ -171,7 +184,7 @@ body {
   height: 29px;
   text-transform: capitalize;
   font-size: 13px;
-  padding: 0 10px;
+  padding: 0 10px; /* Matches Mandrill's exact padding */
   vertical-align: middle;
   text-align: left;
 }
@@ -181,12 +194,12 @@ body {
 }
 
 .table-container tbody td {
-  padding: 9px 10px;
+  padding: 9px 10px; /* Matches Mandrill's exact padding */
   font-size: 12px;
   line-height: 1.5em;
   vertical-align: middle;
   color: #0066cc;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid rgba(191, 191, 191, 0.5); /* Matches Mandrill's border */
 }
 
 .table-container tbody td:first-child {
@@ -453,8 +466,315 @@ body {
 .main-area {
   flex: 1;
   overflow: auto;
-  padding: 1.5rem;
+  padding: 0; /* Remove padding to allow table-container to fill the space */
   position: relative;
+}
+
+/* Mandrill Email styles */
+.mandrill-page {
+  padding: 1.5rem;
+  height: 100%; /* Ensure it takes the full height of main-area */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Date display in Mandrill table */
+.date-display {
+  color: #999;
+  font-size: 10px;
+  display: inline-block;
+  margin-top: 3px;
+}
+
+/* Update mandrill header */
+.mandrill-header {
+  background-color: hsl(80, 60%, 75%); /* lime-300 */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.mandrill-title {
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.mandrill-content {
+  background-color: hsl(150, 50%, 90%); /* mint-100 */
+  border-radius: 0; /* Remove border-radius to fill the space */
+  padding: 0; /* Remove padding to allow table-container to fill the space */
+  flex: 1; /* Take up remaining space */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Enhanced search and filter styles */
+.mandrill-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.search-container {
+  display: flex;
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input {
+  flex: 1;
+  height: 2.5rem;
+  border-radius: 0.375rem 0 0 0.375rem;
+  border: 1px solid #e2e8f0;
+  border-right: none;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+}
+
+.search-button {
+  background-color: hsl(210, 50%, 60%); /* blue-400 */
+  color: white;
+  border: none;
+  border-radius: 0 0.375rem 0.375rem 0;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.search-button:hover {
+  background-color: hsl(210, 50%, 50%);
+}
+
+.date-range-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.date-field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.date-input {
+  height: 2.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+  padding: 0 0.75rem;
+  font-size: 0.875rem;
+  min-width: 150px;
+}
+
+.date-apply-button {
+  height: 2.5rem;
+  background-color: hsl(80, 60%, 65%); /* lime-400 */
+  color: #1f2937;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.date-apply-button:hover {
+  background-color: hsl(80, 60%, 55%);
+}
+
+/* Enhanced filter section */
+.filter-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  background-color: #f9fafb;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.filter-label {
+  margin-right: 0.5rem;
+  font-weight: 600;
+  color: #4b5563;
+  font-size: 0.875rem;
+}
+
+.filter-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.filter-badge:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-badge .badge {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.control-button {
+  height: 2.5rem;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-button:hover {
+  background-color: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* Enhanced stats section */
+.stats-section {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0 1.5rem;
+}
+
+.stats-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.stat-box {
+  background-color: white;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
+  min-width: 120px;
+  text-align: center;
+}
+
+.stat-value {
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: #1f2937;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.quota-box {
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f3f4f6;
+  min-width: 300px;
+}
+
+.quota-title {
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+  font-size: 1rem;
+}
+
+.quota-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
+
+.quota-row:last-child {
+  margin-bottom: 0;
+}
+
+.download-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  padding: 0 1.5rem; /* Restore padding for download section */
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: hsl(210, 50%, 40%); /* blue-600 */
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pagination-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0 1.5rem; /* Restore padding for pagination section */
+}
+
+.rows-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rows-select {
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-button {
+  background-color: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+}
+
+.pagination-button:hover {
+  background-color: #f7fafc;
 }
 
 /* Dashboard content styles */
@@ -469,10 +789,6 @@ body {
   font-size: 1.125rem;
   font-weight: bold;
   margin-bottom: 1rem;
-}
-
-.table-container {
-  overflow-x: auto;
 }
 
 .table {
@@ -674,169 +990,6 @@ body {
 .search-highlight {
   background-color: #fde047; /* yellow-300 */
   color: black;
-}
-
-/* Mandrill Email styles */
-.mandrill-page {
-  padding: 1.5rem;
-}
-
-.mandrill-header {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.mandrill-title {
-  font-size: 1.125rem;
-  font-weight: bold;
-}
-
-.mandrill-content {
-  background-color: hsl(150, 50%, 90%); /* mint-100 */
-  border-radius: 1.5rem;
-  padding: 1.5rem;
-}
-
-.mandrill-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.date-container {
-  position: relative;
-}
-
-.calendar-icon {
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #718096;
-}
-
-.filter-section {
-  margin-bottom: 1.5rem;
-}
-
-.filter-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.filter-label {
-  margin-right: 0.5rem;
-}
-
-.filter-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background-color: white;
-  padding: 0.5rem 0.75rem;
-  border-radius: 0.375rem;
-}
-
-.badge {
-  background-color: #e2e8f0;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.stats-section {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.stats-row {
-  display: flex;
-  gap: 1rem;
-}
-
-.stat-box {
-  background-color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-}
-
-.stat-value {
-  font-weight: bold;
-}
-
-.quota-box {
-  background-color: white;
-  padding: 1rem;
-  border-radius: 0.375rem;
-}
-
-.quota-title {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-}
-
-.quota-row {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.download-section {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
-.link-button {
-  background: none;
-  border: none;
-  color: hsl(210, 50%, 40%); /* blue-600 */
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.pagination-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-}
-
-.rows-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.rows-select {
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  padding: 0.25rem 0.5rem;
-}
-
-.pagination-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.pagination-button {
-  background-color: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
-}
-
-.pagination-button:hover {
-  background-color: #f7fafc;
 }
 
 /* Dark mode styles */
