@@ -4,14 +4,14 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import axios from "axios"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/context/auth-context"
 import { setToken } from "@/lib/auth"
-import { LockKeyhole, Mail, LogIn } from "lucide-react"
+import { login } from "@/lib/api"
+import { LogIn } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -48,13 +48,7 @@ export default function LoginPage() {
 
     try {
       // Try to use the real API first
-      const response = await axios.post<{
-        token: string
-        user: { id: number; username: string; email: string; role: string }
-      }>("https://apioptima-log.xva-rnd.com/api/users/login", {
-        email,
-        password,
-      })
+      const response = await login(email, password)
 
       // Store token and user in localStorage and AuthContext
       setToken(response.data.token)
@@ -75,6 +69,9 @@ export default function LoginPage() {
           username: "Admin",
           email: "admin@example.com",
           role: "ADMIN",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          profile_picture: "/placeholder.svg?height=100&width=100",
         }
 
         // Store mock token and user
@@ -169,7 +166,6 @@ export default function LoginPage() {
                 </>
               )}
             </Button>
-
           </form>
         </div>
       </div>

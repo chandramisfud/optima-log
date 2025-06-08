@@ -1,158 +1,167 @@
 // components/log-viewer.tsx
 "use client"
 
-import { useState, useEffect } from "react";
-import DOMPurify from "dompurify";
-import { getLogFiles, getLogContent, searchLogs, downloadLogs } from "@/lib/api";
-import { LogFile, LogSearchResult } from "@/types/log";
+import { useState, useEffect } from "react"
+import DOMPurify from "dompurify"
+import { getLogFiles, getLogContent, searchLogs, downloadLogs } from "@/lib/api"
+import type { LogFile, LogSearchResult } from "@/types/log"
 
 type LogViewerProps = {
-  title: string;
-  server: "ui" | "api";
-  env: string;
-  platform: string;
-};
+  title: string
+  server: "ui" | "api"
+  env: string
+  platform: string
+}
 
 export function LogViewer({ title, server, env, platform }: LogViewerProps) {
   const [date, setDate] = useState<string>(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  });
-  const [logFiles, setLogFiles] = useState<LogFile[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [logContent, setLogContent] = useState<string>("");
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<LogSearchResult[]>([]);
-  const [fontSize, setFontSize] = useState<string>("medium");
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+    const today = new Date()
+    return today.toISOString().split("T")[0]
+  })
+  const [logFiles, setLogFiles] = useState<LogFile[]>([])
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [logContent, setLogContent] = useState<string>("")
+  const [searchTerm, setSearchTerm] = useState<string>("")
+  const [searchResults, setSearchResults] = useState<LogSearchResult[]>([])
+  const [fontSize, setFontSize] = useState<string>("medium")
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchLogFiles = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await getLogFiles(date, server, env as 'dev' | 'prod', platform as 'XVA' | 'DANONE');
-        const files = response.data.files.map((file: LogFile) => ({
-          ...file,
-          path: file.name, // Map name to path for compatibility
-        }));
-        setLogFiles(files);
-        setSelectedFile(null);
-        setLogContent("");
-        setSearchResults([]);
-      } catch (error) {
-        console.error("Error fetching log files:", error);
-        setError("Failed to fetch log files");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+useEffect(() => {
+  const fetchLogFiles = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await getLogFiles(date, server, env as "dev" | "prod", platform as "XVA" | "DANONE");
+      const files = response.data.files ? response.data.files.map((file: LogFile) => ({
+        ...file,
+        path: file.name,
+      })) : [];
+      setLogFiles(files);
+      setSelectedFile(null);
+      setLogContent("");
+      setSearchResults([]);
+    } catch (error) {
+      console.error("Error fetching log files:", error);
+      setError("Failed to fetch log files");
+      setLogFiles([]); 
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchLogFiles();
-  }, [date, server, env, platform]);
+  fetchLogFiles();
+}, [date, server, env, platform]);
 
   const handleFileSelect = (filePath: string) => {
-    setSelectedFile(filePath);
+    setSelectedFile(filePath)
 
     const fetchLogContent = async () => {
-      setIsLoading(true);
-      setError(null);
+      setIsLoading(true)
+      setError(null)
       try {
-        const response = await getLogContent(server, date, env as 'dev' | 'prod', filePath, platform as 'XVA' | 'DANONE');
-        setLogContent(response.data);
+        const response = await getLogContent(
+          server,
+          date,
+          env as "dev" | "prod",
+          filePath,
+          platform as "XVA" | "DANONE",
+        )
+        setLogContent(response.data)
         if (searchTerm) {
-          await handleSearch();
+          await handleSearch()
         }
       } catch (error) {
-        console.error("Error fetching log content:", error);
-        setError("Failed to fetch log content");
+        console.error("Error fetching log content:", error)
+        setError("Failed to fetch log content")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchLogContent();
-  };
+    fetchLogContent()
+  }
 
   const handleSearch = async () => {
     if (!searchTerm) {
-      setSearchResults([]);
-      return;
+      setSearchResults([])
+      return
     }
 
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
-      const response = await searchLogs(date, server, env as 'dev' | 'prod', platform as 'XVA' | 'DANONE', searchTerm);
-      setSearchResults(response.data);
+      const response = await searchLogs(date, server, env as "dev" | "prod", platform as "XVA" | "DANONE", searchTerm)
+      setSearchResults(response.data)
     } catch (error) {
-      console.error("Error searching logs:", error);
-      setError("Failed to search logs");
+      console.error("Error searching logs:", error)
+      setError("Failed to search logs")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleDownload = async () => {
-    if (!selectedFile) return;
+    if (!selectedFile) return
 
-    setIsLoading(true);
-    setError(null);
+    setIsLoading(true)
+    setError(null)
     try {
-      const response = await downloadLogs(server, date, env as 'dev' | 'prod', platform as 'XVA' | 'DANONE', [selectedFile]);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'logs.zip');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const response = await downloadLogs(server, date, env as "dev" | "prod", platform as "XVA" | "DANONE", [
+        selectedFile,
+      ])
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement("a")
+      link.href = url
+      link.setAttribute("download", "logs.zip")
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
     } catch (error) {
-      console.error("Error downloading logs:", error);
-      setError("Failed to download logs");
+      console.error("Error downloading logs:", error)
+      setError("Failed to download logs")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const getFontSizeClass = () => {
     switch (fontSize) {
       case "small":
-        return "log-font-small";
+        return "log-font-small"
       case "medium":
-        return "log-font-medium";
+        return "log-font-medium"
       case "large":
-        return "log-font-large";
+        return "log-font-large"
       case "x-large":
-        return "log-font-xlarge";
+        return "log-font-xlarge"
       default:
-        return "log-font-medium";
+        return "log-font-medium"
     }
-  };
+  }
 
   // Function to escape special regex characters
   const escapeRegExp = (string: string) => {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  };
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  }
 
   // Function to highlight search terms in the log content
   const highlightSearchTerm = (content: string, term: string) => {
-    if (!term || !searchResults.length) return content;
+    if (!term || !searchResults.length) return content
 
-    let highlightedText = content;
+    let highlightedText = content
     searchResults.forEach((result) => {
       try {
-        const escapedTerm = escapeRegExp(term);
-        const regex = new RegExp(`(${escapedTerm})`, 'gi');
-        highlightedText = highlightedText.replace(regex, '<span class="search-highlight">$1</span>');
+        const escapedTerm = escapeRegExp(term)
+        const regex = new RegExp(`(${escapedTerm})`, "gi")
+        highlightedText = highlightedText.replace(regex, '<span class="search-highlight">$1</span>')
       } catch (err) {
-        console.error('Error in highlightSearchTerm:', err);
-        return content; // Fallback to original content if regex fails
+        console.error("Error in highlightSearchTerm:", err)
+        return content // Fallback to original content if regex fails
       }
-    });
-    return <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlightedText) }} />;
-  };
+    })
+    return <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlightedText) }} />
+  }
 
   return (
     <div className="log-viewer">
@@ -243,5 +252,5 @@ export function LogViewer({ title, server, env, platform }: LogViewerProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

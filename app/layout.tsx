@@ -9,6 +9,7 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata = {
   title: "XVA LOG MANAGEMENT",
   description: "Log management system for XVA",
+    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -26,4 +27,3 @@ export default function RootLayout({
     </html>
   )
 }
-

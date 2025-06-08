@@ -207,7 +207,7 @@ export function Sidebar() {
             className={`sidebar-item ${active ? "active" : ""}`}
             style={{ paddingLeft: `${level * 16 + 16}px` }}
           >
-            {item.icon && <span className="sidebar-icon">{item.icon}</span>}
+            {item.icon && <span className="sidebar-icon flex items-center justify-center">{item.icon}</span>}
             <span className={active ? "font-bold" : ""}>{item.label}</span>
           </Link>
         ) : (
@@ -217,7 +217,7 @@ export function Sidebar() {
             onClick={() => toggleExpand(item.label)}
           >
             <div className="flex items-center">
-              {item.icon && <span className="sidebar-icon">{item.icon}</span>}
+              {item.icon && <span className="sidebar-icon flex items-center justify-center">{item.icon}</span>}
               <span>{item.label}</span>
             </div>
             {hasChildren && (
