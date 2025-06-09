@@ -600,7 +600,6 @@ body {
 .user-avatar {
   background-color: #8bc34a;
   border-radius: 9999px;
-  padding: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
