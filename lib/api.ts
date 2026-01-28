@@ -1,7 +1,7 @@
 // lib/api.ts
 import axios, { type AxiosInstance, type AxiosResponse } from "axios"
 import type { User, ChangePasswordRequest, ChangePasswordResponse, ProfilePictureResponse } from "../types/user"
-import type { LogListResponse, LogSearchResult } from "../types/log"
+import type { LogFile, LogListResponse, LogSearchResult } from "../types/log"
 import type { BackupFile } from "../types/backup"
 import type { MandrillActivityResponse } from "../types/mandrill"
 
@@ -207,3 +207,60 @@ export const resendMandrillEmail = (
 }
 
 export default api
+
+export const getAgentLogFiles = (
+  env: "dev" | "prod",
+  platform: "XVA" | "DANONE",
+  type: "ui" | "api",
+  date?: string,
+  pattern?: string,
+): Promise<AxiosResponse<{ files: LogFile[]; count: number }>> => {
+  const params = new URLSearchParams({
+    env,
+    platform,
+    type,
+  })
+  if (date) params.append("date", date)
+  if (pattern) params.append("pattern", pattern)
+
+  return api.get(`/api/logs/agent/list?${params.toString()}`).then((response) => {
+    response.data.files = response.data.files || []
+    return response
+  })
+}
+
+export const getAgentLogContent = (
+  env: "dev" | "prod",
+  platform: "XVA" | "DANONE",
+  type: "ui" | "api",
+  filename: string,
+): Promise<AxiosResponse<string>> => {
+  return api.get(
+    `/api/logs/agent/file?env=${env}&platform=${platform}&type=${type}&filename=${filename}`,
+  )
+}
+
+export const downloadAgentLog = (
+  env: "dev" | "prod",
+  platform: "XVA" | "DANONE",
+  type: "ui" | "api",
+  filename: string,
+): Promise<AxiosResponse<Blob>> => {
+  return api.get(
+    `/api/logs/agent/download?env=${env}&platform=${platform}&type=${type}&filename=${filename}`,
+    { responseType: "blob" },
+  )
+}
+
+export const downloadAgentLogsMultiple = (
+  env: "dev" | "prod",
+  platform: "XVA" | "DANONE",
+  type: "ui" | "api",
+  files: string[],
+): Promise<AxiosResponse<Blob>> => {
+  return api.post(
+    "/api/logs/agent/download-multiple",
+    { env, platform, type, files },
+    { responseType: "blob" },
+  )
+}

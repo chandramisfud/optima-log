@@ -3,8 +3,8 @@
 
 import { useState, useEffect } from "react"
 import DOMPurify from "dompurify"
-import { getLogFiles, getLogContent, searchLogs, downloadLogs } from "@/lib/api"
-import type { LogFile, LogSearchResult } from "@/types/log"
+import { getAgentLogFiles, getAgentLogContent, downloadAgentLog, downloadAgentLogsMultiple } from "@/lib/api"
+import type { LogFile, LogPattern } from "@/types/log"
 
 type LogViewerProps = {
   title: string
@@ -18,108 +18,159 @@ export function LogViewer({ title, server, env, platform }: LogViewerProps) {
     const today = new Date()
     return today.toISOString().split("T")[0]
   })
+  const [pattern, setPattern] = useState<LogPattern | "">("")
   const [logFiles, setLogFiles] = useState<LogFile[]>([])
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
   const [logContent, setLogContent] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState<string>("")
-  const [searchResults, setSearchResults] = useState<LogSearchResult[]>([])
   const [fontSize, setFontSize] = useState<string>("medium")
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-useEffect(() => {
-  const fetchLogFiles = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await getLogFiles(date, server, env as "dev" | "prod", platform as "XVA" | "DANONE");
-      const files = response.data.files ? response.data.files.map((file: LogFile) => ({
-        ...file,
-        path: file.name,
-      })) : [];
-      setLogFiles(files);
-      setSelectedFile(null);
-      setLogContent("");
-      setSearchResults([]);
-    } catch (error) {
-      console.error("Error fetching log files:", error);
-      setError("Failed to fetch log files");
-      setLogFiles([]); 
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Pattern options for API logs
+  const patternOptions: { value: LogPattern | ""; label: string }[] = [
+    { value: "", label: "All Logs" },
+    { value: "main", label: "Main" },
+    { value: "background", label: "Background Jobs" },
+    { value: "sso", label: "SSO" },
+    { value: "stdout", label: "Stdout" },
+  ]
 
-  fetchLogFiles();
-}, [date, server, env, platform]);
-
-  const handleFileSelect = (filePath: string) => {
-    setSelectedFile(filePath)
-
-    const fetchLogContent = async () => {
+  useEffect(() => {
+    const fetchLogFiles = async () => {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await getLogContent(
+        const response = await getAgentLogFiles(
+          env as "dev" | "prod",
+          platform as "XVA" | "DANONE",
           server,
           date,
-          env as "dev" | "prod",
-          filePath,
-          platform as "XVA" | "DANONE",
+          pattern || undefined,
         )
-        setLogContent(response.data)
-        if (searchTerm) {
-          await handleSearch()
-        }
+        const files = response.data.files || []
+        setLogFiles(files)
+        setSelectedFiles([])
+        setLogContent("")
       } catch (error) {
-        console.error("Error fetching log content:", error)
-        setError("Failed to fetch log content")
+        console.error("Error fetching log files:", error)
+        setError("Failed to fetch log files")
+        setLogFiles([])
       } finally {
         setIsLoading(false)
       }
     }
 
-    fetchLogContent()
+    fetchLogFiles()
+  }, [date, server, env, platform, pattern])
+
+  const toggleFileSelection = (filename: string) => {
+    setSelectedFiles((prev) => {
+      if (prev.includes(filename)) {
+        return prev.filter((f) => f !== filename)
+      } else {
+        return [...prev, filename]
+      }
+    })
   }
 
-  const handleSearch = async () => {
-    if (!searchTerm) {
-      setSearchResults([])
-      return
-    }
+  const selectAllFiles = () => {
+    setSelectedFiles(logFiles.map((f) => f.name))
+  }
 
+  const clearSelection = () => {
+    setSelectedFiles([])
+  }
+
+  const handleFileView = async (filename: string) => {
     setIsLoading(true)
     setError(null)
+
     try {
-      const response = await searchLogs(date, server, env as "dev" | "prod", platform as "XVA" | "DANONE", searchTerm)
-      setSearchResults(response.data)
+      const response = await getAgentLogContent(
+        env as "dev" | "prod",
+        platform as "XVA" | "DANONE",
+        server,
+        filename,
+      )
+      setLogContent(response.data)
     } catch (error) {
-      console.error("Error searching logs:", error)
-      setError("Failed to search logs")
+      console.error("Error fetching log content:", error)
+      setError("Failed to fetch log content")
     } finally {
       setIsLoading(false)
     }
   }
 
   const handleDownload = async () => {
-    if (!selectedFile) return
+    if (selectedFiles.length === 0) return
 
     setIsLoading(true)
     setError(null)
     try {
-      const response = await downloadLogs(server, date, env as "dev" | "prod", platform as "XVA" | "DANONE", [
-        selectedFile,
-      ])
-      const url = window.URL.createObjectURL(new Blob([response.data]))
-      const link = document.createElement("a")
-      link.href = url
-      link.setAttribute("download", "logs.zip")
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
+      if (selectedFiles.length === 1) {
+        const response = await downloadAgentLog(
+          env as "dev" | "prod",
+          platform as "XVA" | "DANONE",
+          server,
+          selectedFiles[0],
+        )
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", selectedFiles[0])
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      } else {
+        const response = await downloadAgentLogsMultiple(
+          env as "dev" | "prod",
+          platform as "XVA" | "DANONE",
+          server,
+          selectedFiles,
+        )
+        const url = window.URL.createObjectURL(new Blob([response.data]))
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", `logs-${date}.zip`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+      }
     } catch (error) {
       console.error("Error downloading logs:", error)
       setError("Failed to download logs")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleBulkDownload = async () => {
+    if (logFiles.length === 0) return
+
+    setIsLoading(true)
+    setError(null)
+    try {
+      const allFilenames = logFiles.map((f) => f.name)
+      const response = await downloadAgentLogsMultiple(
+        env as "dev" | "prod",
+        platform as "XVA" | "DANONE",
+        server,
+        allFilenames,
+      )
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement("a")
+      link.href = url
+      link.setAttribute("download", `logs-${date}-all.zip`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error downloading bulk logs:", error)
+      setError("Failed to download bulk logs")
     } finally {
       setIsLoading(false)
     }
@@ -140,27 +191,22 @@ useEffect(() => {
     }
   }
 
-  // Function to escape special regex characters
   const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   }
 
-  // Function to highlight search terms in the log content
   const highlightSearchTerm = (content: string, term: string) => {
-    if (!term || !searchResults.length) return content
+    if (!term) return content
 
-    let highlightedText = content
-    searchResults.forEach((result) => {
-      try {
-        const escapedTerm = escapeRegExp(term)
-        const regex = new RegExp(`(${escapedTerm})`, "gi")
-        highlightedText = highlightedText.replace(regex, '<span class="search-highlight">$1</span>')
-      } catch (err) {
-        console.error("Error in highlightSearchTerm:", err)
-        return content // Fallback to original content if regex fails
-      }
-    })
-    return <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlightedText) }} />
+    try {
+      const escapedTerm = escapeRegExp(term)
+      const regex = new RegExp(`(${escapedTerm})`, "gi")
+      const highlightedText = content.replace(regex, '<span class="search-highlight">$1</span>')
+      return <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(highlightedText) }} />
+    } catch (err) {
+      console.error("Error in highlightSearchTerm:", err)
+      return content
+    }
   }
 
   return (
@@ -178,9 +224,55 @@ useEffect(() => {
             </button>
           </div>
 
-          <div className="download-button-container">
-            <button className="control-button" onClick={handleDownload} disabled={!selectedFile || isLoading}>
-              DOWNLOAD
+          {server === "api" && (
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-sm font-medium">Log Type:</span>
+              <select
+                value={pattern}
+                onChange={(e) => setPattern(e.target.value as LogPattern | "")}
+                className="min-w-[150px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                {patternOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button
+              className="control-button text-sm"
+              onClick={selectAllFiles}
+              disabled={logFiles.length === 0 || isLoading}
+            >
+              SELECT ALL
+            </button>
+            <button
+              className="control-button text-sm"
+              onClick={clearSelection}
+              disabled={selectedFiles.length === 0 || isLoading}
+            >
+              CLEAR
+            </button>
+          </div>
+
+          <div className="download-button-container flex gap-2">
+            <button
+              className="control-button"
+              onClick={handleDownload}
+              disabled={selectedFiles.length === 0 || isLoading}
+            >
+              DOWNLOAD ({selectedFiles.length})
+            </button>
+
+            <button
+              className="control-button bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleBulkDownload}
+              disabled={logFiles.length === 0 || isLoading}
+            >
+              BULK DOWNLOAD
             </button>
           </div>
         </div>
@@ -195,18 +287,22 @@ useEffect(() => {
           ) : (
             <div className="log-files-grid">
               {logFiles.map((file, index) => (
-                <div key={index} className="log-file-item">
+                <div key={index} className="log-file-item flex items-center gap-2">
                   <input
-                    type="radio"
-                    id={`file-${index}`}
-                    name="logFile"
-                    value={file.path}
-                    checked={selectedFile === file.path}
-                    onChange={() => handleFileSelect(file.path)}
-                    className="log-file-radio"
+                    type="checkbox"
+                    id={`checkbox-${index}`}
+                    checked={selectedFiles.includes(file.name)}
+                    onChange={() => toggleFileSelection(file.name)}
+                    className="w-4 h-4 cursor-pointer"
                   />
-                  <label htmlFor={`file-${index}`} className="log-file-label">
+
+                  <label
+                    htmlFor={`label-${index}`}
+                    className="log-file-label flex-1 cursor-pointer hover:bg-gray-100 p-2 rounded"
+                    onClick={() => handleFileView(file.name)}
+                  >
                     {file.name}
+                    {file.type && <span className="text-xs text-gray-500 ml-2">({file.type})</span>}
                   </label>
                 </div>
               ))}
@@ -221,7 +317,6 @@ useEffect(() => {
               placeholder="SEARCH"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               className="search-input"
             />
           </div>
@@ -242,7 +337,7 @@ useEffect(() => {
             <div className="loading-message">Loading log content...</div>
           ) : error ? (
             <div className="error-message text-red-500">{error}</div>
-          ) : !selectedFile ? (
+          ) : !logContent ? (
             <div className="select-file-message">Select a log file to view its content</div>
           ) : searchTerm ? (
             highlightSearchTerm(logContent, searchTerm)
